@@ -5,23 +5,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CPEG 330 Interactive Materials</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 :root{
   --page:#FFFFFF; --side:#F4F5F7; --line:#E3E5EA;
   --ink:#1E2433; --muted:#5E6472;
   --accent:#274C77; --accent-soft:#E6ECF3;
-  --font:'Source Sans 3',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --font:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15.5px;line-height:1.5}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5}
 .shell{display:grid;grid-template-columns:268px 1fr;min-height:100%}
 
 aside{background:var(--side);border-right:1px solid var(--line);padding:28px 22px;display:flex;flex-direction:column;gap:26px}
-.course h1{margin:0;font-family:var(--serif);font-size:28px;line-height:1.1;letter-spacing:-.01em}
+.course h1{margin:0;font-size:26px;line-height:1.1;letter-spacing:-.01em}
 .course .name{margin:2px 0 10px;font-size:17px}
 .course p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45}
 
@@ -36,7 +35,7 @@ nav{display:flex;flex-direction:column;gap:18px}
 
 main{display:flex;flex-direction:column;min-width:0;padding:24px clamp(16px,2.5vw,32px) 20px;gap:14px}
 .head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 24px;flex-wrap:wrap}
-.head h2{margin:0 0 4px;font-family:var(--serif);font-size:24px;line-height:1.2}
+.head h2{margin:0 0 4px;font-size:22px;line-height:1.2}
 .head p{margin:0;color:var(--muted);max-width:68ch}
 .newtab{color:var(--accent);font-size:14px;white-space:nowrap;padding-top:4px}
 .frame{flex:1;min-height:640px;border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex}
@@ -62,7 +61,7 @@ main{display:flex;flex-direction:column;min-width:0;padding:24px clamp(16px,2.5v
       <p>Hamad Bin Khalifa University<br>Dr. Mariam Bahameish</p>
     </div>
     <nav id="nav" aria-label="Visualizations"></nav>
-    <p class="note">These visualizations are used in class alongside live coding and activities. Each one runs in the browser, with no installation.</p>
+    <p class="note">These visualizations are used in class alongside live coding and activities. Each page has a <strong>Predict mode</strong> that pauses before each step and asks the class what happens next, and a <strong>Projector</strong> mode for large rooms. Use the arrow keys to step through.</p>
   </aside>
 
   <main>
@@ -84,6 +83,7 @@ const TOPICS=[
     {id:'merge-quick',name:'Merge sort and quick sort',desc:'Merge sort with split brackets at every depth, and quick sort using the Lomuto partition with i and j pointers.'},
     {id:'counting-radix',name:'Counting sort and radix sort',desc:'Counting sort through its count, prefix-sum and placement phases, and radix sort digit by digit into buckets 0–9.'}]},
   {name:'Trees',items:[
+    {id:'avl-cases',name:'AVL rotation cases',desc:'The four imbalance cases (LL, RR, LR and RL), animated step by step: how to spot each case from the balance factors, and how the rotations fix it.'},
     {id:'avl',name:'AVL rotation game',desc:'A 21-tile class game. Students pick a number, then work out balance factors, the rotation case, and the tree after rotation.'}]},
   {name:'Hashing',items:[
     {id:'hash',name:'Hash table collisions',desc:'Insert keys one at a time with chaining, linear probing or double hashing, and watch the load factor grow.'}]},

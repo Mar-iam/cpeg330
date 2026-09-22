@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVL Rotation Cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#F6F6F3;--surface:#FFFFFF;--surface2:#F0F0EC;--border:#E3E3DD;--border2:#D2D2CA;--text:#1B1B1F;--muted:#6B6B73;
+  --sans:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'Atkinson Hyperlegible Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ll:#059669;--lr:#0891B2;--rr:#D97706;--rl:#DC2626;--case:#059669;
+  --imb:#DC2626;--imb-bg:#FEF2F2;--imb-line:#F87171;
+  --up:#047857;--up-bg:#E8F4EE;--up-line:#34D399;
+  --mv:#7E22CE;--mv-bg:#FAF5FF;--mv-line:#C084FC;
+  --new:#4338CA;--new-bg:#EEF2FF;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px;line-height:1.55;padding:24px clamp(16px,2.5vw,32px) 64px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:10px 24px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border)}
+header h1{font-size:clamp(1.35rem,2.4vw,1.8rem);letter-spacing:-.02em;line-height:1.15}
+header p{color:var(--muted);font-size:14px}
+.formula{font-family:var(--mono);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:5px 12px;white-space:nowrap}
+
+.cases{display:flex;gap:8px;flex-wrap:wrap}
+.case-btn{font:inherit;font-size:14px;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer}
+.case-btn .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.case-btn small{color:var(--muted);font-size:12.5px}
+.case-btn:hover{border-color:var(--c)}
+.case-btn[aria-selected="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,white);font-weight:700}
+.case-btn:focus-visible,.ctrl:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.stage{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.stage-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.stage-head h2{font-size:17px;display:flex;align-items:center;gap:10px}
+.tag{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--case);border-radius:5px;padding:1px 8px}
+.stepno{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+svg{display:block;width:100%;height:auto;background:#FBFBF9}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:10px 16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:50%;border:1.5px solid}
+.sw.tri{border-radius:2px}
+
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.rules{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:12.5px}
+.rule{padding:5px 8px;border-radius:6px;border-left:3px solid transparent;color:var(--muted)}
+.rule b{color:var(--rc)}
+.rule.on{border-left-color:var(--rc);background:color-mix(in srgb,var(--rc) 8%,white);color:var(--text)}
+.kw{color:#3730A3;font-weight:700}
+
+ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:2px}
+ol.steps li{counter-increment:s;display:flex;gap:10px;align-items:baseline;padding:5px 6px;border-radius:6px;color:var(--muted);font-size:14px;cursor:pointer}
+ol.steps li::before{content:counter(s);flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+ol.steps li.done{color:var(--text)}
+ol.steps li.done::before{background:var(--surface2)}
+ol.steps li.now{color:var(--text);font-weight:700;background:color-mix(in srgb,var(--case) 8%,white)}
+ol.steps li.now::before{border-color:var(--case);background:var(--case);color:#fff}
+.explain{font-size:16px;line-height:1.6;min-height:8.2em}
+.explain b{font-weight:700}
+.controls{display:flex;gap:6px;flex-wrap:wrap}
+.ctrl{font:inherit;font-size:14px;padding:7px 13px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer}
+.ctrl.primary{background:var(--case);border-color:var(--case);color:#fff;font-weight:700}
+.ctrl:disabled{opacity:.35;cursor:default}
+.next-hint{font-size:13px;color:var(--muted)}
+.next-hint a{color:#274C77}
+
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* Shared classroom toolkit styles */
+html.dsv-proj body{zoom:1.3}
+.dsv-bar{position:fixed;right:14px;bottom:14px;z-index:900;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 28px)}
+.dsv-tool{font:inherit;font-size:12.5px;padding:6px 11px;border-radius:999px;border:1px solid var(--border2,#D2D2CA);background:var(--surface,#fff);color:var(--text,#1B1B1F);cursor:pointer;box-shadow:0 2px 8px rgba(27,27,31,.08)}
+.dsv-tool b{font-weight:700;margin-left:3px;color:var(--muted,#6B6B73)}
+.dsv-tool[aria-pressed="true"]{background:#274C77;border-color:#274C77;color:#fff}
+.dsv-tool[aria-pressed="true"] b{color:#fff}
+.dsv-tool:hover{border-color:#274C77}
+.dsv-tool:focus-visible,.dsv-opt:focus-visible,.dsv-go:focus-visible,.dsv-skip:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+.dsv-help{position:absolute;right:0;bottom:calc(100% + 8px);background:var(--surface,#fff);border:1px solid var(--border,#E3E3DD);border-radius:8px;padding:10px 14px;font-size:13px;line-height:1.9;box-shadow:0 8px 24px rgba(27,27,31,.12);white-space:nowrap;color:var(--text,#1B1B1F)}
+.dsv-help kbd{display:inline-block;min-width:22px;text-align:center;font:inherit;font-size:12px;padding:0 5px;margin-right:6px;border:1px solid var(--border2,#D2D2CA);border-bottom-width:2px;border-radius:4px;background:var(--surface2,#F0F0EC)}
+
+.dsv-active{outline:2px solid #274C77!important;outline-offset:2px}
+.dsv-cnt{display:flex;gap:18px;flex-wrap:wrap;padding:7px 14px;border-bottom:1px solid var(--border,#E3E3DD);font-size:12.5px;color:var(--muted,#6B6B73);background:var(--surface,#fff)}
+.dsv-cnt b{color:var(--text,#1B1B1F);font-variant-numeric:tabular-nums;font-size:14px;margin-left:5px}
+
+.dsv-modal{position:fixed;inset:0;z-index:1000;background:rgba(27,27,31,.32);display:flex;align-items:center;justify-content:center;padding:16px}
+.dsv-modal[hidden]{display:none}
+.dsv-card{background:var(--surface,#fff);color:var(--text,#1B1B1F);border-radius:12px;max-width:520px;width:100%;padding:22px 22px 18px;box-shadow:0 18px 50px rgba(27,27,31,.25)}
+.dsv-label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#274C77;margin-bottom:8px}
+.dsv-q{font-size:18px;line-height:1.45;margin-bottom:16px}
+.dsv-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.dsv-opt{font:inherit;font-size:15px;text-align:left;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border2,#D2D2CA);background:var(--surface,#fff);color:var(--text,#1B1B1F);cursor:pointer;display:flex;align-items:center;gap:10px}
+.dsv-opt:hover:not(:disabled){border-color:#274C77}
+.dsv-opt:disabled{cursor:default;opacity:.55}
+.dsv-opt.ok{opacity:1;border-color:#15803D;background:#ECFDF3}
+.dsv-opt.no{opacity:1;border-color:#B91C1C;background:#FEF2F2}
+.dsv-n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--surface2,#F0F0EC);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.dsv-fb{min-height:24px;margin:14px 0 4px;font-size:14.5px;line-height:1.5}
+.dsv-fb .good{color:#15803D;font-weight:700}
+.dsv-fb .bad{color:#B91C1C;font-weight:700}
+.dsv-foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px}
+.dsv-skip{font:inherit;font-size:13.5px;background:none;border:0;color:var(--muted,#6B6B73);cursor:pointer;padding:8px 4px;text-decoration:underline}
+.dsv-skip[hidden]{display:none}
+.dsv-go{font:inherit;font-size:14px;font-weight:700;margin-left:auto;padding:9px 16px;border-radius:8px;border:0;background:#274C77;color:#fff;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.dsv-card{animation:dsvIn .16s ease-out}@keyframes dsvIn{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>AVL Rotation Cases</h1>
+      <p>A node with |BF| = 2 is out of balance. Its balance factor and its child's decide which rotation fixes it.</p>
+    </div>
+    <div class="formula">BF = height(left) − height(right)</div>
+  </header>
+
+  <div class="cases" role="tablist" aria-label="Rotation case" id="cases"></div>
+
+  <div class="main">
+    <section class="stage" aria-live="polite">
+      <div class="stage-head">
+        <h2><span class="tag" id="tag">LL</span><span id="ctitle"></span></h2>
+        <span class="stepno" id="stepno"></span>
+      </div>
+      <svg id="svg" viewBox="0 0 600 420" role="img" aria-label="AVL subtree diagram"></svg>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--imb-bg);border-color:var(--imb-line)"></i>Unbalanced node</span>
+        <span><i class="sw" style="background:var(--up-bg);border-color:var(--up-line)"></i>Moves up</span>
+        <span><i class="sw tri" style="background:var(--mv-bg);border-color:var(--mv-line)"></i>Subtree that changes parent</span>
+        <span><i class="sw" style="background:var(--new);border-color:var(--new)"></i>New key</span>
+        <span>T = subtree, h = its height</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <div class="explain" id="explain"></div>
+      </div>
+      <div class="controls">
+        <button class="ctrl" onclick="resetCase()">↺ Reset</button>
+        <button class="ctrl" id="prev" onclick="go(-1)">← Prev</button>
+        <button class="ctrl primary" id="next" onclick="nextGated()">Next →</button>
+        <button class="ctrl" id="auto" onclick="toggleAuto()">▶ Auto</button>
+      </div>
+      <p class="next-hint" id="hint" hidden>Ready to practise? Try the <a href="avl.html" id="gameLink">AVL rotation game</a>.</p>
+      <div class="card">
+        <h3>Steps</h3>
+        <ol class="steps" id="steps"></ol>
+      </div>
+      <div class="card">
+        <h3>Which case?</h3>
+        <div class="rules" id="rules"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>/* Shared classroom toolkit: predict mode, keyboard control, projector mode */
+window.DSV = (function () {
+  var KEY = 'cpeg330-prefs';
+  var prefs = { predict: false, projector: false };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || '{}'); if (saved) { prefs.predict = !!saved.predict; prefs.projector = !!saved.projector; } } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} }
+
+  var opts = { predict: true };
+  var panels = [], active = 0;
+  var modal = null, pending = null, answered = false, current = null;
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  function applyPrefs() {
+    document.documentElement.classList.toggle('dsv-proj', prefs.projector);
+    var bp = document.getElementById('dsv-predict'), bj = document.getElementById('dsv-proj');
+    if (bp) { bp.setAttribute('aria-pressed', prefs.predict); bp.querySelector('b').textContent = prefs.predict ? 'On' : 'Off'; }
+    if (bj) { bj.setAttribute('aria-pressed', prefs.projector); bj.querySelector('b').textContent = prefs.projector ? 'On' : 'Off'; }
+  }
+
+  function buildBar() {
+    var bar = el('div', 'dsv-bar');
+    bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Classroom tools');
+    if (opts.predict) {
+      var p = el('button', 'dsv-tool', 'Predict mode <b>Off</b>');
+      p.id = 'dsv-predict'; p.type = 'button'; p.title = 'Pause before each step and ask the class what happens next (P)';
+      p.onclick = function () { prefs.predict = !prefs.predict; save(); applyPrefs(); };
+      bar.appendChild(p);
+    }
+    var j = el('button', 'dsv-tool', 'Projector <b>Off</b>');
+    j.id = 'dsv-proj'; j.type = 'button'; j.title = 'Enlarge everything for the back row (F)';
+    j.onclick = function () { prefs.projector = !prefs.projector; save(); applyPrefs(); };
+    bar.appendChild(j);
+    var k = el('button', 'dsv-tool dsv-keys', 'Keys');
+    k.type = 'button'; k.setAttribute('aria-expanded', 'false');
+    var help = el('div', 'dsv-help');
+    help.hidden = true;
+    help.innerHTML = opts.keysHelp || (
+      '<div><kbd>→</kbd> Next step</div><div><kbd>←</kbd> Previous step</div>' +
+      '<div><kbd>Space</kbd> Auto play / pause</div><div><kbd>R</kbd> Reset</div>' +
+      (opts.multi ? '<div><kbd>1</kbd>–<kbd>' + opts.multi + '</kbd> Choose panel</div>' : '') +
+      (opts.predict ? '<div><kbd>P</kbd> Predict mode</div>' : '') +
+      '<div><kbd>F</kbd> Projector mode</div>');
+    k.onclick = function () { help.hidden = !help.hidden; k.setAttribute('aria-expanded', String(!help.hidden)); };
+    bar.appendChild(k); bar.appendChild(help);
+    document.body.appendChild(bar);
+    applyPrefs();
+  }
+
+  function setActive(i) {
+    if (!panels[i]) return;
+    active = i;
+    panels.forEach(function (p, n) { if (p.el) p.el.classList.toggle('dsv-active', n === i && panels.length > 1); });
+  }
+
+  function register(p) {
+    var i = panels.length; panels.push(p);
+    if (p.el) p.el.addEventListener('pointerdown', function () { setActive(i); }, true);
+    setActive(active);
+  }
+
+  /* ---------- predict modal ---------- */
+  function buildModal() {
+    modal = el('div', 'dsv-modal');
+    modal.hidden = true;
+    modal.innerHTML =
+      '<div class="dsv-card" role="dialog" aria-modal="true" aria-labelledby="dsv-q">' +
+      '<div class="dsv-label">Predict the next step</div>' +
+      '<div class="dsv-q" id="dsv-q"></div>' +
+      '<div class="dsv-opts"></div>' +
+      '<div class="dsv-fb" aria-live="polite"></div>' +
+      '<div class="dsv-foot"><button type="button" class="dsv-skip">Skip question</button>' +
+      '<button type="button" class="dsv-go">Show the answer</button></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.dsv-skip').onclick = function () { proceed(); };
+    modal.querySelector('.dsv-go').onclick = function () { if (answered) proceed(); else reveal(-1); };
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+  }
+
+  function ask(q, go) {
+    if (!prefs.predict || !opts.predict || !q || !q.options || q.options.length < 2) { go(); return false; }
+    if (!modal) buildModal();
+    current = q; pending = go; answered = false;
+    modal.querySelector('.dsv-q').innerHTML = q.prompt;
+    var box = modal.querySelector('.dsv-opts'); box.innerHTML = '';
+    q.options.forEach(function (o, i) {
+      var b = el('button', 'dsv-opt', '<span class="dsv-n">' + (i + 1) + '</span>' + o);
+      b.type = 'button';
+      b.onclick = function () { if (!answered) reveal(i); };
+      box.appendChild(b);
+    });
+    modal.querySelector('.dsv-fb').innerHTML = '';
+    modal.querySelector('.dsv-go').textContent = 'Show the answer';
+    modal.querySelector('.dsv-skip').hidden = false;
+    modal.hidden = false;
+    setTimeout(function () { var f = box.querySelector('button'); if (f) f.focus(); }, 0);
+    return true;
+  }
+
+  function reveal(i) {
+    answered = true;
+    var btns = modal.querySelectorAll('.dsv-opt');
+    btns.forEach(function (b, n) {
+      b.disabled = true;
+      if (n === current.answer) b.classList.add('ok');
+      else if (n === i) b.classList.add('no');
+    });
+    var fb = modal.querySelector('.dsv-fb');
+    if (i === -1) fb.innerHTML = '<span>Answer: ' + current.options[current.answer] + '</span>';
+    else if (i === current.answer) fb.innerHTML = '<span class="good">Correct.</span>' + (current.why ? ' ' + current.why : '');
+    else fb.innerHTML = '<span class="bad">Not quite.</span> The answer is ' + current.options[current.answer] + '.' + (current.why ? ' ' + current.why : '');
+    modal.querySelector('.dsv-go').textContent = 'Show the step →';
+    modal.querySelector('.dsv-skip').hidden = true;
+    modal.querySelector('.dsv-go').focus();
+  }
+
+  function proceed() { var go = pending; close(); if (go) go(); }
+  function close() { if (modal) modal.hidden = true; pending = null; current = null; }
+  function isOpen() { return modal && !modal.hidden; }
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (isOpen()) {
+      if (/^[1-9]$/.test(k) && !answered) { var n = +k - 1; if (current.options[n] != null) { reveal(n); e.preventDefault(); } }
+      else if ((k === 'Enter' || k === 'ArrowRight') && answered) { proceed(); e.preventDefault(); }
+      else if (k === 'Escape') { close(); e.preventDefault(); }
+      return;
+    }
+    if (k === 'p' || k === 'P') { if (opts.predict) { prefs.predict = !prefs.predict; save(); applyPrefs(); } return; }
+    if (k === 'f' || k === 'F') { prefs.projector = !prefs.projector; save(); applyPrefs(); return; }
+    var p = panels[active];
+    if (!p) return;
+    if (t && t.tagName === 'BUTTON' && (k === ' ' || k === 'Enter')) return;
+    if (k === 'ArrowRight' && p.next) { p.next(); e.preventDefault(); }
+    else if (k === 'ArrowLeft' && p.prev) { p.prev(); e.preventDefault(); }
+    else if (k === ' ' && p.auto) { p.auto(); e.preventDefault(); }
+    else if ((k === 'r' || k === 'R') && p.reset) { p.reset(); }
+    else if (/^[1-9]$/.test(k) && panels.length > 1) { setActive(+k - 1); }
+  });
+
+  /* ---------- helpers for pages ---------- */
+  function shuffle(arr, seed) {
+    var a = arr.slice(), s = (seed || 1) * 9301 + 49297;
+    for (var i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; var j = Math.floor(s / 233280 * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  /* build a question from a correct value and distractors; keeps order stable per seed */
+  function choice(prompt, correct, distractors, seed, why) {
+    var seen = {}, list = [];
+    [correct].concat(distractors).forEach(function (v) { var key = String(v); if (!seen[key]) { seen[key] = 1; list.push(v); } });
+    list = list.slice(0, 4);
+    var order = shuffle(list, seed);
+    return { prompt: prompt, options: order.map(String), answer: order.indexOf(correct), why: why };
+  }
+
+  function init(o) {
+    opts = Object.assign({ predict: true }, o || {});
+    if (document.body) buildBar(); else document.addEventListener('DOMContentLoaded', buildBar);
+  }
+
+  return { init: init, register: register, ask: ask, choice: choice, isOpen: isOpen };
+})();
+</script>
+<script>
+/* ---------- geometry: LL and LR are drawn; RR and RL are their mirror images ---------- */
+const TRI={'h':58,'h+1':80,'h−1':42};
+const BASE={
+  LL:{
+    nodes:['z','y'],
+    before:{pos:{z:[380,60],y:[260,150]},subs:{T1:[200,215],T2:[320,215],T3:[450,125]},edges:[['z','y'],['y','T1'],['y','T2'],['z','T3']]},
+    after:{pos:{y:[300,60],z:[410,150]},subs:{T1:[235,125],T2:[355,215],T3:[465,215]},edges:[['y','T1'],['y','z'],['z','T2'],['z','T3']]},
+    h:{T1:'h+1',T2:'h',T3:'h'}, newIn:'T1'
+  },
+  LR:{
+    nodes:['z','y','x'],
+    before:{pos:{z:[400,60],y:[255,150],x:[340,240]},subs:{T1:[195,215],T2:[290,305],T3:[390,305],T4:[470,125]},edges:[['z','y'],['y','T1'],['y','x'],['x','T2'],['x','T3'],['z','T4']]},
+    mid:{pos:{z:[400,60],x:[280,150],y:[200,240]},subs:{T1:[145,305],T2:[250,305],T3:[340,215],T4:[470,125]},edges:[['z','x'],['x','y'],['x','T3'],['y','T1'],['y','T2'],['z','T4']]},
+    after:{pos:{x:[300,60],y:[190,150],z:[410,150]},subs:{T1:[140,215],T2:[240,215],T3:[360,215],T4:[460,215]},edges:[['x','y'],['x','z'],['y','T1'],['y','T2'],['z','T3'],['z','T4']]},
+    h:{T1:'h',T2:'h',T3:'h−1',T4:'h'}, newIn:'T2'
+  }
+};
+
+const CASES={
+  LL:{base:'LL',mirror:false,color:'var(--ll)',title:'Left-Left: one right rotation',short:'Right rotation',
+    keys:{z:30,y:20},labels:{T1:'T1',T2:'T2',T3:'T3'},
+    q:{prompt:'BF(30) = <b>+2</b> and its left child 20 has BF = <b>+1</b>. Which case is this?',answer:'LL',why:'Both balance factors are positive: the imbalance is in the left subtree of the left child.'},
+    steps:[
+      {t:'A key is inserted',s:'before',text:'A new key goes into <b>T1</b>, the left subtree of 20. T1 grows from height h to <b>h+1</b>.'},
+      {t:'Find the imbalance',s:'before',bf:{z:2,y:1},hl:{imb:['z']},text:'Walk back up from the new key. <b>30</b> is the first node with |BF| = 2 (BF = +2). Its left child <b>20</b> has BF = +1, the <b>same sign</b>. Same signs need one single rotation: this is the <b>LL case</b>.'},
+      {t:'Plan the rotation',s:'before',bf:{z:2,y:1},hl:{imb:['z'],up:['y'],mv:['T2']},text:'A <b>right rotation at 30</b>: 20 moves up and 30 moves down to its right. <b>T2</b> holds the keys between 20 and 30, so it changes parent and becomes 30’s left subtree.'},
+      {t:'Rotate right at 30',s:'after',bf:{y:0,z:0},hl:{up:['y'],mv:['T2']},text:'20 now roots this subtree, with T1 on its left and 30 on its right. The in-order sequence is unchanged: <b>T1 &lt; 20 &lt; T2 &lt; 30 &lt; T3</b>.'},
+      {t:'Check the result',s:'after',bf:{y:0,z:0},hl:{ok:['y','z']},text:'Both nodes are balanced (BF = 0), and the subtree is back to height h+2, as before the insertion. Nothing above it needs fixing: <b>one rotation, O(1) work</b>.'}
+    ]},
+  RR:{base:'LL',mirror:true,color:'var(--rr)',title:'Right-Right: one left rotation',short:'Left rotation',
+    keys:{z:10,y:20},labels:{T1:'T3',T2:'T2',T3:'T1'},
+    q:{prompt:'BF(10) = <b>−2</b> and its right child 20 has BF = <b>−1</b>. Which case is this?',answer:'RR',why:'Both balance factors are negative: the imbalance is in the right subtree of the right child.'},
+    steps:[
+      {t:'A key is inserted',s:'before',text:'A new key goes into <b>T3</b>, the right subtree of 20. T3 grows from height h to <b>h+1</b>.'},
+      {t:'Find the imbalance',s:'before',bf:{z:-2,y:-1},hl:{imb:['z']},text:'Walk back up from the new key. <b>10</b> is the first node with |BF| = 2 (BF = −2). Its right child <b>20</b> has BF = −1, the <b>same sign</b>. Same signs need one single rotation: this is the <b>RR case</b>.'},
+      {t:'Plan the rotation',s:'before',bf:{z:-2,y:-1},hl:{imb:['z'],up:['y'],mv:['T2']},text:'A <b>left rotation at 10</b>: 20 moves up and 10 moves down to its left. <b>T2</b> holds the keys between 10 and 20, so it changes parent and becomes 10’s right subtree.'},
+      {t:'Rotate left at 10',s:'after',bf:{y:0,z:0},hl:{up:['y'],mv:['T2']},text:'20 now roots this subtree, with 10 on its left and T3 on its right. The in-order sequence is unchanged: <b>T1 &lt; 10 &lt; T2 &lt; 20 &lt; T3</b>.'},
+      {t:'Check the result',s:'after',bf:{y:0,z:0},hl:{ok:['y','z']},text:'Both nodes are balanced (BF = 0), and the subtree is back to height h+2, as before the insertion. Nothing above it needs fixing: <b>one rotation, O(1) work</b>.'}
+    ]},
+  LR:{base:'LR',mirror:false,color:'var(--lr)',title:'Left-Right: left rotation, then right rotation',short:'Left, then right',
+    keys:{z:30,y:10,x:20},labels:{T1:'T1',T2:'T2',T3:'T3',T4:'T4'},
+    q:{prompt:'BF(30) = <b>+2</b> but its left child 10 has BF = <b>−1</b>. Which case is this?',answer:'LR',why:'The signs are opposite: the imbalance is in the right subtree of the left child, so it needs a double rotation.'},
+    steps:[
+      {t:'A key is inserted',s:'before',text:'A new key goes into <b>T2</b>, below 20. 20 is the right child of 10, which is the left child of 30: the insertion is in the <b>right subtree of the left child</b>.'},
+      {t:'Find the imbalance',s:'before',bf:{z:2,y:-1},hl:{imb:['z']},text:'<b>30</b> is the first node with |BF| = 2 (BF = +2), but its left child <b>10</b> has BF = −1: the <b>opposite sign</b>. A single right rotation would only move the problem to the other side, so LR needs a <b>double rotation</b>.'},
+      {t:'Plan rotation 1',s:'before',bf:{z:2,y:-1},hl:{imb:['z'],up:['x'],mv:['T2']},text:'Rotation 1 is a <b>left rotation at 10</b>. 20 moves up into 10’s place, and <b>T2</b> (keys between 10 and 20) becomes 10’s right subtree.'},
+      {t:'Rotate left at 10',s:'mid',hl:{imb:['z'],up:['x'],mv:['T2']},text:'Now 30 → 20 → 10 is a straight line to the left. The tree has become the <b>LL case</b>, which one more rotation fixes.'},
+      {t:'Plan rotation 2',s:'mid',hl:{imb:['z'],up:['x'],mv:['T3']},text:'Rotation 2 is a <b>right rotation at 30</b>. 20 moves up again, and <b>T3</b> (keys between 20 and 30) becomes 30’s left subtree.'},
+      {t:'Rotate right at 30',s:'after',bf:{x:0,y:0,z:-1},hl:{up:['x'],mv:['T3']},text:'<b>20, the middle key</b> of the three, is now on top with 10 and 30 as its children. The order is unchanged: <b>T1 &lt; 10 &lt; T2 &lt; 20 &lt; T3 &lt; 30 &lt; T4</b>.'},
+      {t:'Check the result',s:'after',bf:{x:0,y:0,z:-1},hl:{ok:['x','y','z']},text:'Every balance factor is within −1…+1 and the subtree is back to height h+2, so the fix is complete: <b>two rotations, still O(1) work</b>.'}
+    ]},
+  RL:{base:'LR',mirror:true,color:'var(--rl)',title:'Right-Left: right rotation, then left rotation',short:'Right, then left',
+    keys:{z:10,y:30,x:20},labels:{T1:'T4',T2:'T3',T3:'T2',T4:'T1'},
+    q:{prompt:'BF(10) = <b>−2</b> but its right child 30 has BF = <b>+1</b>. Which case is this?',answer:'RL',why:'The signs are opposite: the imbalance is in the left subtree of the right child, so it needs a double rotation.'},
+    steps:[
+      {t:'A key is inserted',s:'before',text:'A new key goes into <b>T3</b>, below 20. 20 is the left child of 30, which is the right child of 10: the insertion is in the <b>left subtree of the right child</b>.'},
+      {t:'Find the imbalance',s:'before',bf:{z:-2,y:1},hl:{imb:['z']},text:'<b>10</b> is the first node with |BF| = 2 (BF = −2), but its right child <b>30</b> has BF = +1: the <b>opposite sign</b>. A single left rotation would only move the problem to the other side, so RL needs a <b>double rotation</b>.'},
+      {t:'Plan rotation 1',s:'before',bf:{z:-2,y:1},hl:{imb:['z'],up:['x'],mv:['T2']},text:'Rotation 1 is a <b>right rotation at 30</b>. 20 moves up into 30’s place, and <b>T3</b> (keys between 20 and 30) becomes 30’s left subtree.'},
+      {t:'Rotate right at 30',s:'mid',hl:{imb:['z'],up:['x'],mv:['T2']},text:'Now 10 → 20 → 30 is a straight line to the right. The tree has become the <b>RR case</b>, which one more rotation fixes.'},
+      {t:'Plan rotation 2',s:'mid',hl:{imb:['z'],up:['x'],mv:['T3']},text:'Rotation 2 is a <b>left rotation at 10</b>. 20 moves up again, and <b>T2</b> (keys between 10 and 20) becomes 10’s right subtree.'},
+      {t:'Rotate left at 10',s:'after',bf:{x:0,y:0,z:1},hl:{up:['x'],mv:['T3']},text:'<b>20, the middle key</b> of the three, is now on top with 10 and 30 as its children. The order is unchanged: <b>T1 &lt; 10 &lt; T2 &lt; 20 &lt; T3 &lt; 30 &lt; T4</b>.'},
+      {t:'Check the result',s:'after',bf:{x:0,y:0,z:1},hl:{ok:['x','y','z']},text:'Every balance factor is within −1…+1 and the subtree is back to height h+2, so the fix is complete: <b>two rotations, still O(1) work</b>.'}
+    ]}
+};
+const ORDER=['LL','RR','LR','RL'];
+const RULES={
+  LL:'<span class="kw">if</span> BF(node)=+2 <span class="kw">and</span> BF(left)≥0 → <b>LL</b> right rotation',
+  LR:'<span class="kw">if</span> BF(node)=+2 <span class="kw">and</span> BF(left)&lt;0 → <b>LR</b> left, then right',
+  RR:'<span class="kw">if</span> BF(node)=−2 <span class="kw">and</span> BF(right)≤0 → <b>RR</b> left rotation',
+  RL:'<span class="kw">if</span> BF(node)=−2 <span class="kw">and</span> BF(right)&gt;0 → <b>RL</b> right, then left'
+};
+const RC={LL:'var(--ll)',LR:'var(--lr)',RR:'var(--rr)',RL:'var(--rl)'};
+
+let cur='LL', idx=0, shown=null, anim=null, timer=null;
+const $=id=>document.getElementById(id);
+
+function layout(c, s){
+  const b=BASE[CASES[c].base], st=b[s], m=CASES[c].mirror, fx=x=>m?600-x:x;
+  const pts={};
+  Object.entries(st.pos).forEach(([k,[x,y]])=>pts[k]=[fx(x),y]);
+  Object.entries(st.subs).forEach(([k,[x,y]])=>pts[k]=[fx(x),y]);
+  return {pts, edges:st.edges};
+}
+
+function draw(pts, edges, step){
+  const c=CASES[cur], b=BASE[c.base], hl=step.hl||{}, bf=step.bf||{};
+  const has=(k,id)=>(hl[k]||[]).includes(id);
+  let s='';
+  edges.forEach(([a,d])=>{ const p=pts[a], q=pts[d]; s+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="#C9C6BD" stroke-width="2"/>`; });
+  Object.keys(b.h).forEach(t=>{
+    const [x,y]=pts[t], H=TRI[b.h[t]], mv=has('mv',t);
+    const fill=mv?'var(--mv-bg)':'#F0F0EC', line=mv?'var(--mv-line)':'#C9C6BD', tc=mv?'var(--mv)':'var(--text)';
+    s+=`<path d="M${x} ${y} L${x-34} ${y+H} L${x+34} ${y+H} Z" fill="${fill}" stroke="${line}" stroke-width="${mv?2.5:1.5}" stroke-linejoin="round"/>`;
+    s+=`<text x="${x}" y="${y+H*0.66}" text-anchor="middle" font-family="var(--mono)" font-weight="700" font-size="14" fill="${tc}">${c.labels[t]}</text>`;
+    s+=`<text x="${x}" y="${y+H+17}" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--muted)">${b.h[t]}</text>`;
+    if(t===b.newIn) s+=`<circle cx="${x+18}" cy="${y+H-9}" r="5.5" fill="var(--new)"/>`;
+  });
+  b.nodes.forEach(n=>{
+    const [x,y]=pts[n];
+    let fill='#F4F3EF', line='#B5B0A4', tc='var(--text)', w=1.5;
+    if(has('imb',n)){fill='var(--imb-bg)';line='var(--imb-line)';tc='var(--imb)';w=2.5;}
+    if(has('up',n)){fill='var(--up-bg)';line='var(--up-line)';tc='var(--up)';w=2.5;}
+    if(has('ok',n)){fill='var(--up-bg)';line='var(--up-line)';tc='var(--up)';w=2;}
+    s+=`<circle cx="${x}" cy="${y}" r="23" fill="${fill}" stroke="${line}" stroke-width="${w}"/>`;
+    s+=`<text x="${x}" y="${y+5}" text-anchor="middle" font-family="var(--mono)" font-weight="700" font-size="15" fill="${tc}">${c.keys[n]}</text>`;
+    if(bf[n]!=null){
+      const v=bf[n], bad=Math.abs(v)>=2, txt=(v>0?'+':v<0?'−':'')+Math.abs(v);
+      s+=`<text x="${x+30}" y="${y-18}" font-family="var(--mono)" font-weight="700" font-size="13" fill="${bad?'var(--imb)':'#4338CA'}">BF ${txt}</text>`;
+    }
+  });
+  $('svg').innerHTML=s;
+}
+
+function render(animate){
+  const c=CASES[cur], step=c.steps[idx], L=layout(cur, step.s);
+  document.documentElement.style.setProperty('--case', c.color);
+  $('tag').textContent=cur; $('ctitle').textContent=c.title;
+  $('stepno').textContent='Step '+(idx+1)+' / '+c.steps.length;
+  $('rules').innerHTML=ORDER.map(k=>`<div class="rule${k===cur?' on':''}" style="--rc:${RC[k]}">${RULES[k]}</div>`).join('');
+  $('steps').innerHTML=c.steps.map((st,i)=>`<li class="${i<idx?'done':i===idx?'now':''}" data-i="${i}">${st.t}</li>`).join('');
+  $('explain').innerHTML=step.text;
+  $('prev').disabled=idx===0; $('next').disabled=idx===c.steps.length-1;
+  $('hint').hidden=idx!==c.steps.length-1;
+  document.querySelectorAll('.case-btn').forEach(b=>b.setAttribute('aria-selected', b.dataset.c===cur));
+  if(anim) cancelAnimationFrame(anim);
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!animate||!shown||reduce){ draw(L.pts,L.edges,step); shown=L.pts; return; }
+  const from=shown, to=L.pts, t0=performance.now(), D=750;
+  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+  const frame=now=>{
+    const t=Math.min(1,(now-t0)/D), e=ease(t), p={};
+    Object.keys(to).forEach(k=>{ const a=from[k]||to[k], b=to[k]; p[k]=[a[0]+(b[0]-a[0])*e, a[1]+(b[1]-a[1])*e]; });
+    draw(p,L.edges,step);
+    if(t<1) anim=requestAnimationFrame(frame); else { shown=to; anim=null; }
+  };
+  anim=requestAnimationFrame(frame);
+}
+
+function go(d){ const n=CASES[cur].steps.length; const i=Math.max(0,Math.min(n-1,idx+d)); if(i===idx) return; idx=i; render(true); }
+function resetCase(){ stopAuto(); idx=0; render(true); }
+function setCase(c){ stopAuto(); cur=c; idx=0; shown=null; render(false); try{history.replaceState(null,'','#'+c);}catch(e){} }
+function caseQ(){
+  const c=CASES[cur]; if(idx!==0) return null;
+  const opts=['LL','LR','RR','RL'];
+  return {prompt:c.q.prompt, options:opts.map(o=>o+' case'), answer:opts.indexOf(c.q.answer), why:c.q.why};
+}
+function nextGated(){ if(idx>=CASES[cur].steps.length-1) return false; return DSV.ask(caseQ(), ()=>go(1)); }
+function stopAuto(){ if(timer){clearInterval(timer);timer=null;} $('auto').textContent='▶ Auto'; }
+function toggleAuto(){
+  if(timer){ stopAuto(); return; }
+  $('auto').textContent='⏸ Pause';
+  timer=setInterval(()=>{ if(idx>=CASES[cur].steps.length-1){stopAuto();return;} if(nextGated()) stopAuto(); },2600);
+}
+
+$('cases').innerHTML=ORDER.map(k=>`<button class="case-btn" role="tab" data-c="${k}" style="--c:${RC[k]}"><i class="dot"></i>${k}<small>${CASES[k].short}</small></button>`).join('');
+$('cases').addEventListener('click',e=>{ const b=e.target.closest('.case-btn'); if(b) setCase(b.dataset.c); });
+$('steps').addEventListener('click',e=>{ const li=e.target.closest('li'); if(!li) return; stopAuto(); idx=+li.dataset.i; render(true); });
+
+DSV.init({multi:0, keysHelp:'<div><kbd>→</kbd> Next step</div><div><kbd>←</kbd> Previous step</div><div><kbd>Space</kbd> Auto play / pause</div><div><kbd>R</kbd> Reset</div><div><kbd>1</kbd>–<kbd>4</kbd> LL, RR, LR, RL</div><div><kbd>P</kbd> Predict mode</div><div><kbd>F</kbd> Projector mode</div>'});
+DSV.register({el:null,next:nextGated,prev:()=>{stopAuto();go(-1);},auto:toggleAuto,reset:resetCase});
+document.addEventListener('keydown',e=>{
+  if(DSV.isOpen()||e.metaKey||e.ctrlKey||e.altKey) return;
+  const t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA')) return;
+  if(/^[1-4]$/.test(e.key)) setCase(ORDER[+e.key-1]);
+});
+$('gameLink').addEventListener('click',e=>{ try{ if(window.parent!==window && window.parent.location){ window.parent.location.hash='avl'; e.preventDefault(); } }catch(err){} });
+const h=location.hash.slice(1).toUpperCase();
+setCase(CASES[h]?h:'LL');
+</script>
+</body>
+</html>
