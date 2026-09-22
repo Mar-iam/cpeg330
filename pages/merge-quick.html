@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Merge &amp; Quick Sort</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --merge:#5ba3d4;--merge-dim:#0d2030;--merge-act:#3d85b8;
+  --quick:#c47a5a;--quick-dim:#2a1a12;--quick-act:#a85f3e;
+  --pivot:#d4a853;--sorted:#5aaa7e;--comparing:#9b6bb5;
+  --swapping:#8b9ad0;--default:#1e2030;--partition-l:#3a4570;
+  --ptr-i:#7ec8e3;--ptr-j:#e3a07e;
+}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;min-height:100vh;}
+.container{max-width:1240px;margin:0 auto;padding:22px 16px;}
+header{text-align:center;margin-bottom:22px;}
+header h1{
+  font-size:clamp(1.7rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-0.5px;
+  background:linear-gradient(120deg,var(--merge),var(--quick));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;
+}
+header p{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;}
+
+.array-controls{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.array-controls label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+.array-controls input[type="text"]{
+  flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:'Source Code Pro',monospace;font-size:0.85rem;padding:6px 10px;outline:none;transition:border-color 0.2s;
+}
+.array-controls input[type="text"]:focus{border-color:var(--merge);}
+.btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.78rem;cursor:pointer;transition:all 0.15s;background:var(--surface2);color:var(--muted);}
+.btn:hover{color:var(--text);border-color:var(--muted);}
+.speed-control{display:flex;align-items:center;gap:7px;}
+.speed-control label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+input[type="range"]{-webkit-appearance:none;width:80px;height:3px;border-radius:2px;background:var(--border);outline:none;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--merge);cursor:pointer;}
+
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:768px){.panels{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.panel-header{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:0.9rem;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;gap:6px;}
+.merge-title{color:var(--merge);}
+.quick-title{color:var(--quick);}
+.badge{font-family:'Source Code Pro',monospace;font-size:0.56rem;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.merge-badge{background:var(--merge-dim);color:var(--merge);}
+.quick-badge{background:var(--quick-dim);color:var(--quick);}
+.step-counter{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);}
+
+/* Bars */
+.bars-outer{padding:10px 12px 0;height:220px;}
+.bars-container{height:100%;display:flex;align-items:flex-end;gap:3px;}
+
+.bar-col{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+
+/* ptr-zone is ALWAYS rendered with fixed height so bars never shift */
+.ptr-zone{
+  height:30px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+}
+.ptr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ptr-dot.invisible{background:transparent;}
+.ptr-lbl{font-family:'Source Code Pro',monospace;font-size:0.5rem;font-weight:700;line-height:1;}
+.ptr-lbl.invisible{color:transparent;}
+
+.bar-num{font-family:'Source Code Pro',monospace;font-size:0.52rem;color:var(--muted);margin-bottom:2px;flex-shrink:0;}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:height 0.22s ease,background 0.18s ease;flex-shrink:0;}
+.bar.default{background:var(--default);}
+.bar.comparing{background:var(--comparing);}
+.bar.pivot{background:var(--pivot);box-shadow:0 0 8px #d4a85360;}
+.bar.merging{background:var(--merge-act);}
+.bar.sorted{background:var(--sorted);}
+.bar.partition-l{background:var(--partition-l);}
+.bar.partition-r{background:#1c1410;border:1px solid #3a2410;}
+.bar.swapping{background:var(--swapping);box-shadow:0 0 8px #8b9ad060;}
+
+.subarray-display{
+  padding:8px 14px;min-height:34px;
+  font-family:'Source Code Pro',monospace;font-size:0.67rem;color:var(--muted);
+  border-top:1px solid var(--border);line-height:1.6;
+}
+.subarray-display .hl{color:var(--text);}
+.subarray-display .m-hl{color:var(--merge);font-weight:700;}
+.subarray-display .q-hl{color:var(--quick);font-weight:700;}
+.subarray-display .p-hl{color:var(--pivot);font-weight:700;}
+.subarray-display .s-hl{color:var(--sorted);font-weight:700;}
+.subarray-display .i-hl{color:var(--ptr-i);font-weight:700;}
+.subarray-display .j-hl{color:var(--ptr-j);font-weight:700;}
+
+.explanation{padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border);font-size:0.8rem;line-height:1.65;color:var(--text);min-height:62px;}
+
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--border);}
+.legend-item{display:flex;align-items:center;gap:3px;font-family:'Source Code Pro',monospace;font-size:0.54rem;color:var(--muted);text-transform:uppercase;}
+.ldot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+.lcirc{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+.controls-row{display:flex;align-items:center;gap:6px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.ctrl-btn{padding:5px 12px;border-radius:6px;border:none;font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.76rem;cursor:pointer;transition:all 0.15s;}
+.ctrl-btn:active{transform:scale(0.97);}
+.ctrl-btn:disabled{opacity:0.22;cursor:not-allowed;}
+.ctrl-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.ctrl-ghost:hover:not(:disabled){color:var(--text);border-color:var(--muted);}
+.merge-panel .ctrl-primary{background:var(--merge-dim);color:var(--merge);border:1px solid var(--merge-act);}
+.merge-panel .ctrl-primary:hover:not(:disabled){background:var(--merge-act);color:#fff;}
+.quick-panel .ctrl-primary{background:var(--quick-dim);color:var(--quick);border:1px solid var(--quick-act);}
+.quick-panel .ctrl-primary:hover:not(:disabled){background:var(--quick-act);color:#fff;}
+
+.complexity{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:600px){.complexity{grid-template-columns:1fr;}}
+.complexity-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.complexity-card h3{font-size:0.78rem;font-weight:700;margin-bottom:8px;}
+.cplx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cplx-item{font-family:'Source Code Pro',monospace;font-size:0.6rem;color:var(--muted);line-height:1.7;}
+.cplx-item strong{color:var(--text);display:block;font-size:0.62rem;}
+.cplx-note{margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;}
+.merge-h{color:var(--merge);}
+.quick-h{color:var(--quick);}
+
+/* ── LIGHT THEME ──────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --default:#1e2030;--partition-l:#3a4570;
+}
+
+[data-theme="light"] .bar.default{background:#dde0ee;}
+[data-theme="light"] .bar.partition-r{background:#e8e0d8;border-color:#c8b898;}
+[data-theme="light"] .bar.partition-l{background:#a8b4d8;}
+[data-theme="light"] .bar.scanning{background:#b8c8e8;}
+[data-theme="light"] .bar.shifting{background:#d8b8e8;}
+[data-theme="light"] .bar.pass-done{background:#b8d8c8;}
+[data-theme="light"] .bar.count-dim2{background:#dde8dd;border-color:#aacaaa;}
+[data-theme="light"] .bar.radix-bucket{background:#e8d8f0;border-color:#c8a8d8;}
+[data-theme="light"] .rb-item{color:#1a1c28;}
+[data-theme="light"] .count-cell-val{background:#eef0f5;color:#52556e;}
+[data-theme="light"] .count-cell-val.cv-zero{color:#b0b8cc;}
+[data-theme="light"] .complexity-card{background:var(--surface);}
+[data-theme="light"] .explanation{background:var(--surface2);}
+
+[data-theme="light"]{
+  --bg:#f4f5f8;--surface:#ffffff;--surface2:#eef0f5;--border:#d0d4e0;
+  --text:#1a1c28;--muted:#8890a8;
+}
+/* Theme toggle */
+.theme-toggle{
+  position:fixed;top:14px;right:16px;z-index:200;
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;transition:background 0.2s,border-color 0.2s,transform 0.15s;
+  box-shadow:0 2px 10px #0003;
+}
+.theme-toggle:hover{transform:scale(1.12);}
+
+
+/* ── Merge Sort bracket row ─────────────────────────────────── */
+.merge-brackets-outer{
+  padding:0 12px;height:38px;flex-shrink:0;position:relative;
+  border-top:1px solid var(--border);
+}
+.merge-brackets-svg{width:100%;height:38px;overflow:visible;}
+/* depth-tinted bracket strokes */
+.brk-0{stroke:#5ba3d4;}
+.brk-1{stroke:#7ec47e;}
+.brk-2{stroke:#d4a853;}
+.brk-3{stroke:#e84a8a;}
+.brk-4{stroke:#b87ec4;}
+.brk-text{font-family:'Source Code Pro',monospace;font-size:8px;font-weight:700;}
+.brk-text-0{fill:#5ba3d4;}
+.brk-text-1{fill:#7ec47e;}
+.brk-text-2{fill:#d4a853;}
+.brk-text-3{fill:#e84a8a;}
+.brk-text-4{fill:#b87ec4;}
+[data-theme="light"] .brk-0{stroke:#2a6090;}
+[data-theme="light"] .brk-text-0{fill:#2a6090;}
+[data-theme="light"] .brk-1{stroke:#2a7a2a;}
+[data-theme="light"] .brk-text-1{fill:#2a7a2a;}
+[data-theme="light"] .brk-2{stroke:#7a5a10;}
+[data-theme="light"] .brk-text-2{fill:#7a5a10;}
+[data-theme="light"] .brk-3{stroke:#8a1a4a;}
+[data-theme="light"] .brk-text-3{fill:#8a1a4a;}
+[data-theme="light"] .brk-4{stroke:#5a2a7a;}
+[data-theme="light"] .brk-text-4{fill:#5a2a7a;}
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+.theme-toggle{display:none!important}
+header h1{background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--text)!important;font-weight:700!important;letter-spacing:-.02em!important;font-size:clamp(1.35rem,2.4vw,1.8rem)!important}
+header p{color:var(--muted)!important}
+.panel,.complexity-card,.array-controls{box-shadow:0 1px 2px rgba(27,27,31,.04)}
+.ctrl-primary:hover:not(:disabled){color:#fff!important}
+:root,:root[data-theme]{--merge:#2563EB!important;--merge-dim:#DBEAFE!important;--merge-act:#3B82F6!important;--quick:#EA580C!important;--quick-dim:#FFEDD5!important;--quick-act:#C2410C!important;--pivot:#D97706!important;--comparing:#8B5CF6!important;--swapping:#6366F1!important;--default:#E2E3E8!important;--partition-l:#A5B4FC!important;--ptr-i:#0891B2!important;--ptr-j:#EA580C!important}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Merge Sort &amp; Quick Sort</h1>
+  <p>Divide &amp; Conquer · In-Class Walkthrough</p>
+</header>
+
+<div class="array-controls">
+  <label>Array:</label>
+  <input type="text" id="arrayInput" value="38, 27, 43, 3, 9, 82, 10" />
+  <button class="btn" onclick="randomArray()">Random</button>
+  <button class="btn" onclick="applyArray()">Apply ↵</button>
+  <div class="speed-control">
+    <label>Speed:</label>
+    <input type="range" id="speedSlider" min="1" max="5" value="3" />
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- MERGE SORT -->
+  <div class="panel merge-panel">
+    <div class="panel-header">
+      <div class="panel-title merge-title">Merge Sort <span class="badge merge-badge">Divide &amp; Conquer</span></div>
+      <span class="step-counter" id="mergeCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="mergeBars"></div></div>
+    <div class="merge-brackets-outer"><svg class="merge-brackets-svg" id="mergeBrackets"></svg></div>
+    <div class="subarray-display" id="mergeSubarray">Ready.</div>
+    <div class="explanation" id="mergeExplanation">Merge Sort splits the array in half recursively, then merges sorted halves together.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--merge-act)"></div>Merging</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--comparing)"></div>Comparing</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--default)"></div>Idle</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('merge')">↺ Reset</button>
+      <button class="ctrl-btn ctrl-ghost" id="mergePrev" onclick="step('merge',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="mergeNext" onclick="step('merge',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="mergePlay" onclick="togglePlay('merge')">▶ Auto</button>
+    </div>
+  </div>
+
+  <!-- QUICK SORT -->
+  <div class="panel quick-panel">
+    <div class="panel-header">
+      <div class="panel-title quick-title">Quick Sort <span class="badge quick-badge">Pivot &amp; Partition</span></div>
+      <span class="step-counter" id="quickCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="quickBars"></div></div>
+    <div class="subarray-display" id="quickSubarray">Ready.</div>
+    <div class="explanation" id="quickExplanation">Quick Sort picks a pivot, partitions elements around it, then recurses on each side.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--pivot)"></div>Pivot</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--comparing)"></div>j scanning</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--partition-l)"></div>≤ pivot</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--swapping)"></div>Swapping</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+      <div class="legend-item"><div class="lcirc" style="background:var(--ptr-i)"></div>i ptr</div>
+      <div class="legend-item"><div class="lcirc" style="background:var(--ptr-j)"></div>j ptr</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('quick')">↺ Reset</button>
+      <button class="ctrl-btn ctrl-ghost" id="quickPrev" onclick="step('quick',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="quickNext" onclick="step('quick',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="quickPlay" onclick="togglePlay('quick')">▶ Auto</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="complexity">
+  <div class="complexity-card">
+    <h3 class="merge-h">Merge Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n log n)</div>
+      <div class="cplx-item"><strong>Average</strong>O(n log n)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n log n)</div>
+    </div>
+    <div class="cplx-note"><span>Space: O(n) — needs extra array</span><span>Stable ✓</span></div>
+  </div>
+  <div class="complexity-card">
+    <h3 class="quick-h">Quick Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n log n)</div>
+      <div class="cplx-item"><strong>Average</strong>O(n log n)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n²) bad pivot</div>
+    </div>
+    <div class="cplx-note"><span>Space: O(log n) — in-place</span><span>Not stable ✗</span></div>
+  </div>
+</div>
+
+</div>
+<script>
+let arr=[38,27,43,3,9,82,10];
+const stepsMap={},idxMap={},timerMap={};
+
+function getDelay(){return[1200,750,440,210,75][parseInt(document.getElementById('speedSlider').value)-1];}
+
+function randomArray(){
+  const n=Math.floor(Math.random()*5)+5;
+  arr=Array.from({length:n},()=>Math.floor(Math.random()*88)+5);
+  document.getElementById('arrayInput').value=arr.join(', ');
+  buildAll();
+}
+function applyArray(){
+  const p=document.getElementById('arrayInput').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  if(p.length>=2){arr=p;buildAll();}
+}
+document.getElementById('arrayInput').addEventListener('keydown',e=>{if(e.key==='Enter')applyArray();});
+
+// ── MERGE SORT ────────────────────────────────────────────────
+// Each step carries:
+//   colors[]  — bar colour classes
+//   brackets  — array of {l,r,mid,depth,phase:'split'|'left'|'right'|'merge'|'merged'}
+//               describing ALL bracket groups to draw, not just the active one.
+function genMerge(input){
+  const n=input.length;
+  const steps=[];
+  const a=[...input];
+
+  // bracketStack: tracks all currently-active bracket spans by depth
+  // We record a snapshot of all active brackets at each step.
+  const activeBrackets=[]; // [{l,r,mid,depth}]
+
+  const push=(colors,expl,sub,brackets)=>
+    steps.push({array:[...a],colors,explanation:expl,subarray:sub,pointers:null,
+                brackets: brackets||[]});
+
+  push(a.map(()=>'default'),
+    `🔵 Start: [${a.join(', ')}]. We'll recursively split the array in half, then merge the sorted halves back together.`,
+    `Full array: [<span class="m-hl">${a.join(', ')}</span>]`, []);
+
+  // depth → color index (cycle through palette)
+  function ms(l,r,depth){
+    if(l>=r) return;
+    const m=Math.floor((l+r)/2);
+
+    // Push split bracket
+    const bk={l,r,mid:m,depth};
+    activeBrackets.push(bk);
+
+    // SPLIT step — show both halves as distinct colours
+    const splitColors=a.map((_,x)=>
+      x>=l&&x<=m ? 'merging' : x>m&&x<=r ? 'partition-r' : 'default');
+    push(splitColors,
+      `✂️ Split [${l}..${r}] (depth ${depth+1}) →  Left [${l}..${m}]: [${a.slice(l,m+1).join(', ')}]  |  Right [${m+1}..${r}]: [${a.slice(m+1,r+1).join(', ')}]`,
+      `Left: [<span class="m-hl">${a.slice(l,m+1).join(', ')}</span>]  ·  Right: [<span class="hl">${a.slice(m+1,r+1).join(', ')}</span>]`,
+      activeBrackets.map(b=>({...b,phase:'split'})));
+
+    ms(l,m,depth+1);
+    ms(m+1,r,depth+1);
+    mergeFn(l,m,r,depth);
+
+    // Pop when fully merged
+    const idx=activeBrackets.indexOf(bk);
+    if(idx>=0) activeBrackets.splice(idx,1);
+  }
+
+  function mergeFn(l,m,r,depth){
+    let i=l,j=m+1; const tmp=[];
+    while(i<=m&&j<=r){
+      const c=a.map((_,x)=>x===i?'comparing':x===j?'comparing':x>=l&&x<=m?'merging':x>m&&x<=r?'partition-r':'default');
+      push(c,
+        `🔍 Compare a[${i}]=${a[i]} (left) vs a[${j}]=${a[j]} (right).  ${a[i]<=a[j]?`${a[i]} ≤ ${a[j]} → take ${a[i]} from left half`:`${a[j]} < ${a[i]} → take ${a[j]} from right half`}.`,
+        `Left ptr=<span class="m-hl">${i}</span> (val ${a[i]})  ·  Right ptr=<span class="hl">${j}</span> (val ${a[j]})`,
+        activeBrackets.map(b=>({...b,phase:b.l===l&&b.r===r?'merge':'split'})));
+      if(a[i]<=a[j]) tmp.push(a[i++]); else tmp.push(a[j++]);
+    }
+    while(i<=m)tmp.push(a[i++]);
+    while(j<=r)tmp.push(a[j++]);
+    for(let k=0;k<tmp.length;k++)a[l+k]=tmp[k];
+
+    push(a.map((_,x)=>x>=l&&x<=r?'sorted':'default'),
+      `✅ Merged [${l}..${r}] = [${a.slice(l,r+1).join(', ')}] — sorted!`,
+      `Merged: [<span class="s-hl">${a.slice(l,r+1).join(', ')}</span>]`,
+      activeBrackets.map(b=>({...b,phase:b.l===l&&b.r===r?'merged':'split'})));
+  }
+
+  ms(0,n-1,0);
+  push(a.map(()=>'sorted'),`🎉 Fully sorted: [${a.join(', ')}]`,
+    `<span class="s-hl">Sorted: [${a.join(', ')}]</span>`, []);
+  return steps;
+}
+
+// ── QUICK SORT ─────────────────────────────────────────────────
+// Lomuto partition scheme.
+// i = boundary of the "≤ pivot" region (last confirmed small element).
+// j = current scanning pointer.
+// When a[j] ≤ pivot: increment i FIRST, then swap a[i] ↔ a[j].
+function genQuick(input){
+  const steps=[],a=[...input];
+  const done=new Set();
+
+  // addD: already-sorted indices stay green
+  function addD(c){return c.map((x,idx)=>done.has(idx)?'sorted':x);}
+  const push=(colors,expl,sub,iPtr,jPtr)=>
+    steps.push({array:[...a],colors:addD(colors),explanation:expl,subarray:sub,pointers:{iPtr,jPtr}});
+
+  push(a.map(()=>'default'),
+    `🟠 Start: [${a.join(', ')}]. We use the Lomuto partition scheme: pivot = last element. i marks the boundary of elements ≤ pivot; j scans forward.`,
+    `Full array: [<span class="q-hl">${a.join(', ')}</span>]`, null, null);
+
+  function qs(l,r){
+    if(l>=r){if(l===r)done.add(l); return;}
+    const pi=partition(l,r);
+    done.add(pi);
+    qs(l,pi-1);
+    qs(pi+1,r);
+  }
+
+  function partition(l,r){
+    const pv=a[r];
+    let i=l-1; // i starts just before the subarray; incremented before each swap
+
+    push(a.map((_,x)=>x===r?'pivot':'default'),
+      `📍 New partition [${l}..${r}]. Pivot = a[${r}] = ${pv}. i = ${i} (boundary, starts before subarray). j will scan from ${l} to ${r-1}.`,
+      `Pivot: <span class="p-hl">${pv}</span>  i = <span class="i-hl">${i}</span>  (nothing in left region yet)`,
+      i, null);
+
+    for(let j=l; j<r; j++){
+      const cmp = a[j] <= pv;
+
+      // Step: show j pointing at a[j], before any action
+      push(a.map((_,x)=>x===r?'pivot':x===j?'comparing':x>=l&&x<=i?'partition-l':'default'),
+        `🔎 j = ${j},  a[j] = ${a[j]}.  Is ${a[j]} ≤ pivot (${pv})? ${cmp ? `YES → i becomes ${i+1}, then swap a[${i+1}] ↔ a[${j}].` : `NO → just move j forward, i stays at ${i}.`}`,
+        `i = <span class="i-hl">${i}</span>  j = <span class="j-hl">${j}</span>  a[j] = <span class="${cmp?'i-hl':'q-hl'}">${a[j]}</span> ${cmp?'≤':'>'} <span class="p-hl">${pv}</span>`,
+        i, j);
+
+      if(cmp){
+        i++; // increment i first
+        // Capture the values BEFORE the swap for the explanation
+        const valAtI = a[i], valAtJ = a[j];
+        [a[i], a[j]] = [a[j], a[i]]; // perform swap
+
+        push(a.map((_,x)=>x===r?'pivot':x===i||x===j?'swapping':x>=l&&x<=i?'partition-l':'default'),
+          `🔄 i incremented to ${i}. Swapped a[${i}] (was ${valAtI}) ↔ a[${j}] (was ${valAtJ}). Now a[${i}] = ${a[i]}, a[${j}] = ${a[j]}. Array: [${a.join(', ')}]`,
+          `After swap → i = <span class="i-hl">${i}</span>  j = <span class="j-hl">${j}</span>  subarray: [<span class="hl">${a.slice(l,r+1).join(', ')}</span>]`,
+          i, j);
+      }
+    }
+
+    // Place pivot: swap a[i+1] ↔ a[r]
+    const pivotFinalPos = i+1;
+    const valAtIp1 = a[pivotFinalPos], valAtR = a[r];
+    [a[pivotFinalPos], a[r]] = [a[r], a[pivotFinalPos]];
+
+    push(a.map((_,x)=>x===pivotFinalPos?'sorted':x>=l&&x<pivotFinalPos?'partition-l':x>pivotFinalPos&&x<=r?'default':'default'),
+      `✅ Partition done. Pivot ${pv} swapped from index ${r} to its final position ${pivotFinalPos}. All elements at [${l}..${pivotFinalPos-1}] ≤ ${pv}; all at [${pivotFinalPos+1}..${r}] > ${pv}.`,
+      `[<span class="i-hl">${a.slice(l,pivotFinalPos).join(', ')}</span>]  <span class="s-hl">[${pv}]</span>  [<span class="q-hl">${a.slice(pivotFinalPos+1,r+1).join(', ')}</span>]`,
+      null, null);
+
+    return pivotFinalPos;
+  }
+
+  qs(0, a.length-1);
+  push(a.map(()=>'sorted'),`🎉 Fully sorted: [${a.join(', ')}]`,`<span class="s-hl">Sorted: [${a.join(', ')}]</span>`, null, null);
+  return steps;
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderMergeBrackets(step, n){
+  const svg=document.getElementById('mergeBrackets'); if(!svg)return;
+  svg.innerHTML='';
+  const brackets=step.brackets||[];
+  if(!brackets.length) return;
+
+  // We render brackets as SVG lines below the bars.
+  // We need to know bar column widths. Use the bars container width.
+  const barsEl=document.getElementById('mergeBars');
+  if(!barsEl) return;
+  const totalW=barsEl.clientWidth||300;
+  const colW=totalW/n;
+  const SVG_H=38;
+  const ROW_H=11; // vertical space per depth level
+  const TICK=4;
+
+  brackets.forEach(({l,r,mid,depth,phase})=>{
+    const ci=Math.min(depth,4); // colour index capped at 4
+    const y=SVG_H-4-(depth%3)*ROW_H; // stagger rows by depth mod 3
+
+    const x1=(l*colW)+3;
+    const x2=((r+1)*colW)-3;
+    const xm=(mid+1)*colW; // gap between L and R
+
+    if(phase==='merged'){
+      // Single solid bracket for merged region
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1); line.setAttribute('y1',y);
+      line.setAttribute('x2',x2); line.setAttribute('y2',y);
+      line.setAttribute('stroke-width','2');
+      line.setAttribute('stroke-dasharray','none');
+      line.setAttribute('class',`brk-${ci}`);
+      svg.appendChild(line);
+      // tick marks
+      [[x1,'L'],[x2,'R']].forEach(([x,lbl])=>{
+        const t=document.createElementNS('http://www.w3.org/2000/svg','line');
+        t.setAttribute('x1',x);t.setAttribute('y1',y-TICK);
+        t.setAttribute('x2',x);t.setAttribute('y2',y+TICK);
+        t.setAttribute('stroke-width','2');
+        t.setAttribute('class',`brk-${ci}`);
+        svg.appendChild(t);
+      });
+    } else {
+      // Two separate half-brackets: left [l..mid] and right [mid+1..r]
+      const segs=[
+        [x1, xm-3, 'L', l, mid],
+        [xm+3, x2, 'R', mid+1, r]
+      ];
+      segs.forEach(([sx1,sx2,lbl])=>{
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',sx1);line.setAttribute('y1',y);
+        line.setAttribute('x2',sx2);line.setAttribute('y2',y);
+        line.setAttribute('stroke-width', phase==='merge'?2.5:1.5);
+        line.setAttribute('stroke-dasharray', phase==='split'?'3,2':'none');
+        line.setAttribute('class',`brk-${ci}`);
+        svg.appendChild(line);
+        // end ticks
+        [sx1,sx2].forEach(x=>{
+          const t=document.createElementNS('http://www.w3.org/2000/svg','line');
+          t.setAttribute('x1',x);t.setAttribute('y1',y-TICK);
+          t.setAttribute('x2',x);t.setAttribute('y2',y+TICK);
+          t.setAttribute('stroke-width','1.5');
+          t.setAttribute('class',`brk-${ci}`);
+          svg.appendChild(t);
+        });
+        // L/R label at centre
+        const cx=(sx1+sx2)/2;
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',cx); txt.setAttribute('y',y-5);
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('class',`brk-text brk-text-${ci}`);
+        txt.textContent=lbl;
+        svg.appendChild(txt);
+      });
+    }
+  });
+}
+
+function renderBars(id, step, showPointers){
+  const c=document.getElementById(id); if(!c)return;
+  const {array,colors,pointers}=step;
+  const max=Math.max(...array,1);
+  c.innerHTML='';
+  const BAR_H = Math.max(100, c.parentElement.clientHeight - 50);
+
+  array.forEach((val,i)=>{
+    const col=document.createElement('div'); col.className='bar-col';
+
+    // ptr-zone: ALWAYS render with fixed height; use invisible class when no pointer
+    const pz=document.createElement('div'); pz.className='ptr-zone';
+    const dot=document.createElement('div'); dot.className='ptr-dot';
+    const lbl=document.createElement('div'); lbl.className='ptr-lbl';
+
+    if(showPointers && pointers){
+      const {iPtr, jPtr}=pointers;
+      const isI = (iPtr !== null && iPtr !== undefined && iPtr === i);
+      const isJ = (jPtr !== null && jPtr !== undefined && jPtr === i);
+
+      if(isI && isJ){
+        dot.style.cssText=`background:linear-gradient(90deg,var(--ptr-i),var(--ptr-j));`;
+        lbl.style.color='var(--ptr-i)'; lbl.textContent='i=j';
+      } else if(isI){
+        dot.style.cssText=`background:var(--ptr-i);box-shadow:0 0 6px var(--ptr-i);`;
+        lbl.style.color='var(--ptr-i)'; lbl.textContent='i';
+      } else if(isJ){
+        dot.style.cssText=`background:var(--ptr-j);box-shadow:0 0 6px var(--ptr-j);`;
+        lbl.style.color='var(--ptr-j)'; lbl.textContent='j';
+      } else {
+        dot.classList.add('invisible');
+        lbl.classList.add('invisible'); lbl.textContent='-';
+      }
+    } else {
+      dot.classList.add('invisible');
+      lbl.classList.add('invisible'); lbl.textContent='-';
+    }
+
+    pz.appendChild(dot); pz.appendChild(lbl);
+
+    const num=document.createElement('div'); num.className='bar-num'; num.textContent=val;
+    const bar=document.createElement('div'); bar.className='bar '+(colors[i]||'default');
+    bar.style.height=Math.max(4,(val/max)*BAR_H)+'px';
+
+    col.appendChild(pz); col.appendChild(num); col.appendChild(bar);
+    c.appendChild(col);
+  });
+}
+
+function updateUI(algo){
+  const steps=stepsMap[algo], idx=idxMap[algo];
+  if(!steps||!steps.length)return;
+  const step=steps[idx];
+  renderBars(`${algo}Bars`, step, algo==='quick');
+  if(algo==='merge') renderMergeBrackets(step, steps[0].array.length);
+  document.getElementById(`${algo}Explanation`).innerHTML=step.explanation;
+  document.getElementById(`${algo}Subarray`).innerHTML=step.subarray;
+  document.getElementById(`${algo}Counter`).textContent=`Step ${idx+1} / ${steps.length}`;
+  document.getElementById(`${algo}Prev`).disabled=idx===0;
+  document.getElementById(`${algo}Next`).disabled=idx===steps.length-1;
+}
+
+function step(algo,dir){
+  idxMap[algo]=Math.max(0,Math.min(stepsMap[algo].length-1,(idxMap[algo]||0)+dir));
+  updateUI(algo);
+}
+function resetAlgo(algo){stopPlay(algo);idxMap[algo]=0;updateUI(algo);}
+function togglePlay(algo){
+  if(timerMap[algo])stopPlay(algo);
+  else{
+    document.getElementById(`${algo}Play`).textContent='⏸ Pause';
+    timerMap[algo]=setInterval(()=>{
+      if((idxMap[algo]||0)>=stepsMap[algo].length-1){stopPlay(algo);return;}
+      step(algo,1);
+    },getDelay());
+  }
+}
+function stopPlay(algo){
+  if(timerMap[algo]){clearInterval(timerMap[algo]);delete timerMap[algo];
+    document.getElementById(`${algo}Play`).textContent='▶ Auto';}
+}
+
+function buildAll(){
+  ['merge','quick'].forEach(k=>stopPlay(k));
+  stepsMap.merge=genMerge(arr); stepsMap.quick=genQuick(arr);
+  idxMap.merge=0; idxMap.quick=0;
+  updateUI('merge'); updateUI('quick');
+}
+buildAll();
+</script>
+
+</body>
+</html>

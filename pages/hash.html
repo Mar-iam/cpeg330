@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hash Table — Instructor Activity</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e2e0d8;
+    --border2: #ccc9bc;
+    --text: #1c1b18;
+    --muted: #7a7870;
+    --green-bg: #edf7ed;
+    --green-border: #b2dfb2;
+    --green-text: #2d6a2d;
+    --orange-bg: #fff4e6;
+    --orange-border: #ffd08a;
+    --orange-text: #b85c00;
+    --blue-bg: #eaf3ff;
+    --blue-border: #aaccf5;
+    --blue-text: #1a4f8c;
+    --mono: 'Source Code Pro', monospace;
+    --sans: 'Source Sans 3', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+
+  header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .scenario-switcher {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .switcher-label {
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .scen-btn {
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    font-weight: 500;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .15s;
+  }
+  .scen-btn:hover { background: var(--surface2); color: var(--text); }
+  .scen-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .scenario strong {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .scenario .sep { color: var(--border2); }
+
+  .h2-tag {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 8px;
+    color: var(--muted);
+    display: none;
+  }
+
+  .strategy-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .strat-btn {
+    padding: 7px 16px;
+    font-size: 0.8rem;
+    font-family: var(--mono);
+    font-weight: 500;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .15s;
+    letter-spacing: -0.01em;
+  }
+  .strat-btn:hover { background: var(--surface2); color: var(--text); }
+  .strat-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  .keys-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .keys-label {
+    font-size: 0.75rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    margin-right: 2px;
+  }
+
+  .key-pill {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+    transition: all .25s;
+  }
+  .key-pill.active { border-color: var(--text); background: var(--text); color: #fff; transform: scale(1.1); }
+  .key-pill.done   { border-color: var(--green-border); background: var(--green-bg); color: var(--green-text); }
+
+  .table-grid {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .slot {
+    flex: 1;
+    min-width: 46px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color .2s, border-width .2s;
+  }
+  .slot.lit { border-color: var(--text); border-width: 1.5px; }
+
+  .slot-idx {
+    background: var(--surface2);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .slot-body {
+    min-height: 52px;
+    padding: 5px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-mark { font-size: 0.75rem; color: #ccc; font-family: var(--mono); }
+
+  .cell {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 4px;
+    border-radius: 4px;
+    text-align: center;
+    width: 100%;
+    animation: popin .28s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  @keyframes popin {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+
+  .c-direct    { background: var(--green-bg);  color: var(--green-text);  border: 1px solid var(--green-border); }
+  .c-collision { background: var(--orange-bg); color: var(--orange-text); border: 1px solid var(--orange-border); }
+  .c-probe     { background: var(--blue-bg);   color: var(--blue-text);   border: 1px solid var(--blue-border); }
+
+  .explain {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.83rem;
+    color: var(--text);
+    line-height: 1.75;
+    margin-bottom: 1.25rem;
+    min-height: 58px;
+  }
+  .explain .calc        { font-family: var(--mono); font-size: 0.78rem; background: var(--surface2); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); }
+  .explain .direct      { color: var(--green-text);  font-weight: 500; }
+  .explain .collision   { color: var(--orange-text); font-weight: 500; }
+  .explain .probe       { color: var(--blue-text);   font-weight: 500; }
+  .explain .placeholder { color: #bbb; font-style: italic; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .leg { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--muted); }
+  .leg-dot { width: 11px; height: 11px; border-radius: 3px; }
+
+  .ctrl-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .btn {
+    padding: 8px 20px;
+    font-size: 0.83rem;
+    font-family: var(--mono);
+    font-weight: 500;
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--text);
+    transition: background .12s;
+    letter-spacing: -0.01em;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn.primary { background: var(--text); color: #fff; border-color: var(--text); }
+  .btn.primary:hover { background: #333; }
+  .btn:disabled { opacity: .3; cursor: default; pointer-events: none; }
+
+  .step-count { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin-left: 2px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+header h1{font-size:1.4rem!important}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Hash Table Activity</h1>
+</header>
+
+<div class="scenario-switcher">
+  <span class="switcher-label">scenario:</span>
+  <button class="scen-btn active" onclick="setScenario(0,this)">A &mdash; N=7, k mod 7</button>
+  <button class="scen-btn" onclick="setScenario(1,this)">B &mdash; N=11, k mod 11</button>
+</div>
+
+<div class="scenario">
+  <span>Keys (in order):</span>
+  <strong id="sc-keys"></strong>
+  <span class="sep">/</span>
+  <span id="sc-size"></span>
+  <span class="sep">/</span>
+  <strong id="sc-h1"></strong>
+  <span class="h2-tag" id="h2tag"></span>
+</div>
+
+<div class="strategy-row">
+  <button class="strat-btn active" onclick="setStrategy('chain',this)">Chaining</button>
+  <button class="strat-btn" onclick="setStrategy('linear',this)">Linear probing</button>
+  <button class="strat-btn" onclick="setStrategy('double',this)">Double hashing</button>
+</div>
+
+<div class="keys-row" id="keys-row">
+  <span class="keys-label">keys &rarr;</span>
+</div>
+
+<div class="table-grid" id="tgrid"></div>
+
+<div class="explain" id="explain"><span class="placeholder">Click "Next step" to begin the reveal.</span></div>
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;">
+  <span style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);">&lambda; (load factor)</span>
+  <div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;border:0.5px solid var(--border);">
+    <div id="lf-bar" style="height:100%;width:0%;background:#1c1b18;border-radius:3px;transition:width .4s;"></div>
+  </div>
+  <span style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--text);min-width:110px;" id="lf-label">0 / 0 = 0.00</span>
+</div>
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:var(--green-bg);border:1px solid var(--green-border)"></div>Direct placement</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--orange-bg);border:1px solid var(--orange-border)"></div>Collision / chained</div>
+  <div class="leg" id="probe-leg" style="display:none"><div class="leg-dot" style="background:var(--blue-bg);border:1px solid var(--blue-border)"></div>Probed placement</div>
+</div>
+
+<div class="ctrl-row">
+  <button class="btn primary" id="btn-next" onclick="next()">Next step</button>
+  <button class="btn" onclick="reset()">Reset</button>
+  <span class="step-count" id="sc-counter">0 / 0</span>
+</div>
+
+<script>
+const SCENARIOS = [
+  {
+    keys: [10,22,31,4,15,32,17],
+    N: 7,
+    h1Label: 'h(k) = k mod 7',
+    h2Label: 'h2(k) = 3 + (k mod 4)',
+    h1: k => k % 7,
+    h2: k => 3 + (k % 4),
+    h1Str: (k,r) => k+' mod 7 = '+r,
+    h2Str: (k,r,s2) => 'h1='+r+', h2=3+('+k+' mod 4)='+s2
+  },
+  {
+    keys: [14,25,7,40,18,52,6,31,63],
+    N: 11,
+    h1Label: 'h(k) = k mod 11',
+    h2Label: 'h2(k) = 1 + (k mod 7)',
+    h1: k => k % 11,
+    h2: k => 1 + (k % 7),
+    h1Str: (k,r) => k+' mod 11 = '+r,
+    h2Str: (k,r,s2) => 'h1='+r+', h2=1+('+k+' mod 7)='+s2
+  }
+];
+
+let SC = SCENARIOS[0];
+let strategy = 'chain';
+let step = 0;
+let table = [];
+
+function initTable(){ table = Array.from({length:SC.N}, ()=>[]); }
+
+function buildKeyPills(){
+  const row = document.getElementById('keys-row');
+  row.innerHTML = '<span class="keys-label">keys \u2192</span>';
+  SC.keys.forEach((k,i)=>{
+    const d = document.createElement('div');
+    d.className = 'key-pill';
+    d.id = 'kp'+i;
+    d.textContent = k;
+    row.appendChild(d);
+  });
+}
+
+function renderTable(){
+  const g = document.getElementById('tgrid');
+  g.innerHTML = '';
+  for(let i=0;i<SC.N;i++){
+    const s = document.createElement('div');
+    s.className = 'slot';
+    s.id = 'sl'+i;
+    const body = table[i].length === 0
+      ? '<span class="empty-mark">\u2014</span>'
+      : table[i].map(c=>'<div class="cell '+c.cls+'">'+c.key+'</div>').join('');
+    s.innerHTML = '<div class="slot-idx">'+i+'</div><div class="slot-body" id="sb'+i+'">'+body+'</div>';
+    g.appendChild(s);
+  }
+}
+
+function light(idx){
+  for(let i=0;i<SC.N;i++){
+    const el=document.getElementById('sl'+i);
+    if(el) el.classList.remove('lit');
+  }
+  if(idx>=0){ const el=document.getElementById('sl'+idx); if(el) el.classList.add('lit'); }
+}
+
+function next(){
+  if(step >= SC.keys.length) return;
+  const k = SC.keys[step];
+  const i0 = SC.h1(k);
+  let placed, msg, cls;
+
+  if(strategy === 'chain'){
+    const col = table[i0].length > 0;
+    cls = col ? 'c-collision' : 'c-direct';
+    table[i0].unshift({key:k, cls});
+    placed = i0;
+    if(col){
+      const rest = table[i0].slice(1).map(x=>x.key).join(' → ');
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h1Str(k,i0)+'</span> &rarr; slot '+i0+' has ['+rest+'] &rarr; <span class="collision">collision &mdash; prepended to head. Chain is now: '+k+' → '+rest+'.</span>';
+    } else {
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h1Str(k,i0)+'</span> &rarr; slot '+i0+' is empty &rarr; <span class="direct">placed at head of new chain at slot '+i0+'.</span>';
+    }
+  }
+
+  else if(strategy === 'linear'){
+    let p=i0, c=0, taken=[];
+    while(table[p].length>0){ taken.push(p); p=(p+1)%SC.N; c++; }
+    cls = c===0 ? 'c-direct' : 'c-probe';
+    table[p].push({key:k, cls});
+    placed = p;
+    if(c===0){
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h1Str(k,i0)+'</span> &rarr; slot '+i0+' is empty &rarr; <span class="direct">placed directly at slot '+i0+'.</span>';
+    } else {
+      let seq = taken.map(s=>'slot '+s+' (taken)').join(' → ')+' → slot '+p+' (empty ✓)';
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h1Str(k,i0)+'</span> &rarr; '+seq+' &rarr; <span class="probe">placed at slot '+p+' after '+c+' probe'+(c>1?'s':'')+'.</span>';
+    }
+  }
+
+  else {
+    const s2 = SC.h2(k);
+    let c=0, probes=[];
+    let p=i0;
+    while(table[p].length>0){
+      c++;
+      let next=((i0+c*s2)%SC.N+SC.N)%SC.N;
+      probes.push({i:c, slot:next, taken: table[next].length>0 });
+      p=next;
+    }
+    cls = c===0 ? 'c-direct' : 'c-probe';
+    table[p].push({key:k, cls});
+    placed = p;
+    if(c===0){
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h2Str(k,i0,s2)+'</span> &rarr; slot '+i0+' is empty &rarr; <span class="direct">placed directly at slot '+i0+'.</span>';
+    } else {
+      let seq = probes.map(pr=>'slot '+pr.slot+' [('+i0+'+'+pr.i+'×'+s2+') mod '+SC.N+'='+pr.slot+']'+(pr.taken?' (taken)':' (empty ✓)')).join(' → ');
+      msg = 'Insert <strong>'+k+'</strong>: <span class="calc">'+SC.h2Str(k,i0,s2)+'</span> &rarr; '+seq+' &rarr; <span class="probe">placed at slot '+p+' after '+c+' probe'+(c>1?'s':'')+'.</span>';
+    }
+  }
+
+  renderTable();
+  light(placed);
+  const newCell = document.querySelector('#sb'+placed+' .cell:last-child');
+  if(newCell){ newCell.style.animation='none'; newCell.offsetHeight; newCell.style.animation=''; }
+
+  document.getElementById('explain').innerHTML = msg;
+  document.getElementById('kp'+step).classList.remove('active');
+  document.getElementById('kp'+step).classList.add('done');
+  step++;
+  document.getElementById('sc-counter').textContent = step+' / '+SC.keys.length;
+  var lf = step/SC.N;
+  document.getElementById('lf-bar').style.width = Math.min(lf*100,100).toFixed(1)+'%';
+  document.getElementById('lf-label').textContent = step+' / '+SC.N+' = '+lf.toFixed(2);
+  document.getElementById('lf-bar').style.background = lf>0.7?'#b85c00':lf>0.5?'#ba7517':'#1c1b18';
+  if(step < SC.keys.length) document.getElementById('kp'+step).classList.add('active');
+  else { document.getElementById('btn-next').disabled=true; light(-1); }
+}
+
+function reset(){
+  step=0; initTable(); renderTable();
+  SC.keys.forEach((_,i)=>{
+    const p=document.getElementById('kp'+i);
+    if(p) p.classList.remove('active','done');
+  });
+  document.getElementById('explain').innerHTML='<span class="placeholder">Click "Next step" to begin the reveal.</span>';
+  document.getElementById('btn-next').disabled=false;
+  document.getElementById('sc-counter').textContent='0 / '+SC.keys.length;
+  document.getElementById('lf-bar').style.width='0%';
+  document.getElementById('lf-bar').style.background='#1c1b18';
+  document.getElementById('lf-label').textContent='0 / '+SC.N+' = 0.00';
+  light(-1);
+}
+
+function updateScenarioUI(){
+  document.getElementById('sc-keys').textContent = SC.keys.join(', ');
+  document.getElementById('sc-size').textContent = 'N = '+SC.N;
+  document.getElementById('sc-h1').textContent = SC.h1Label;
+  document.getElementById('h2tag').textContent = SC.h2Label;
+  document.getElementById('h2tag').style.display = strategy==='double' ? 'inline' : 'none';
+}
+
+function setScenario(idx, btn){
+  SC = SCENARIOS[idx];
+  document.querySelectorAll('.scen-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateScenarioUI();
+  buildKeyPills();
+  reset();
+}
+
+function setStrategy(s,btn){
+  strategy=s;
+  document.querySelectorAll('.strat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('probe-leg').style.display = s==='chain' ? 'none' : 'flex';
+  document.getElementById('h2tag').style.display = s==='double' ? 'inline' : 'none';
+  reset();
+}
+
+updateScenarioUI();
+buildKeyPills();
+initTable();
+renderTable();
+</script>
+</body>
+</html>

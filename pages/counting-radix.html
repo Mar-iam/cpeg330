@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counting Sort &amp; Radix Sort</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --count:#7ec47e;--count-dim:#0d200d;--count-act:#5aaa5a;
+  --radix:#b87ec4;--radix-dim:#1e0d22;--radix-act:#9a5aaa;
+  --pivot:#d4a853;--sorted:#5aaa7e;--comparing:#9b6bb5;
+  --default:#1e2030;--ptr-i:#7ec8e3;
+}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;min-height:100vh;}
+.container{max-width:1240px;margin:0 auto;padding:22px 16px;}
+header{text-align:center;margin-bottom:22px;}
+header h1{
+  font-size:clamp(1.7rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-0.5px;
+  background:linear-gradient(120deg,var(--count),var(--radix));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;
+}
+header p{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;}
+
+.array-controls{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.array-controls label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+.array-controls input[type="text"]{
+  flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:'Source Code Pro',monospace;font-size:0.85rem;padding:6px 10px;outline:none;transition:border-color 0.2s;
+}
+.array-controls input[type="text"]:focus{border-color:var(--count);}
+.btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.78rem;cursor:pointer;transition:all 0.15s;background:var(--surface2);color:var(--muted);}
+.btn:hover{color:var(--text);border-color:var(--muted);}
+.speed-control{display:flex;align-items:center;gap:7px;}
+.speed-control label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+input[type="range"]{-webkit-appearance:none;width:80px;height:3px;border-radius:2px;background:var(--border);outline:none;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--count);cursor:pointer;}
+
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:768px){.panels{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.panel-header{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:0.9rem;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;gap:6px;}
+.count-title{color:var(--count);}
+.radix-title{color:var(--radix);}
+.badge{font-family:'Source Code Pro',monospace;font-size:0.56rem;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.count-badge{background:var(--count-dim);color:var(--count);}
+.radix-badge{background:var(--radix-dim);color:var(--radix);}
+.step-counter{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);}
+
+/* Bars */
+.bars-outer{padding:10px 12px 0;height:180px;}
+.bars-container{height:100%;display:flex;align-items:flex-end;gap:3px;}
+.bar-col{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+.bar-num{font-family:'Source Code Pro',monospace;font-size:0.52rem;color:var(--muted);margin-bottom:2px;flex-shrink:0;}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:height 0.22s ease,background 0.18s ease;flex-shrink:0;}
+.bar.default{background:var(--default);}
+.bar.sorted{background:var(--sorted);}
+.bar.count-active{background:var(--count-act);box-shadow:0 0 8px #5aaa5a60;}
+.bar.count-dim2{background:#131f13;border:1px solid #1e2e1e;}
+.bar.radix-active{background:var(--radix-act);box-shadow:0 0 8px #9a5aaa60;}
+.bar.radix-bucket{background:#2a1a30;border:1px solid #4a2a55;}
+.bar.digit-active{background:var(--radix);box-shadow:0 0 8px #b87ec460;}
+
+/* ─── COUNTING SORT TABLE ───────────────────────────────────── */
+.count-table-section{
+  padding:10px 14px;border-top:1px solid var(--border);
+}
+.section-label{
+  font-family:'Source Code Pro',monospace;font-size:0.6rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;
+}
+/* Phase tabs */
+.phase-tabs{display:flex;gap:5px;margin-bottom:8px;}
+.phase-tab{
+  font-family:'Source Code Pro',monospace;font-size:0.58rem;padding:3px 8px;border-radius:4px;
+  border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:default;
+  transition:all 0.2s;
+}
+.phase-tab.active-count{background:var(--count-dim);color:var(--count);border-color:var(--count-act);}
+.phase-tab.active-prefix{background:#1a1a0d;color:var(--pivot);border-color:#4a4020;}
+.phase-tab.active-place{background:#0d1a1a;color:var(--ptr-i);border-color:#204040;}
+
+/* Scrollable table row */
+.count-table-scroll{overflow-x:auto;padding-bottom:4px;}
+.count-table{display:flex;gap:3px;min-width:max-content;}
+.count-cell{display:flex;flex-direction:column;align-items:center;min-width:34px;}
+.count-cell-idx{font-family:'Source Code Pro',monospace;font-size:0.5rem;color:var(--muted);margin-bottom:2px;}
+.count-cell-val{
+  font-family:'Source Code Pro',monospace;font-size:0.78rem;font-weight:700;
+  width:32px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);
+  transition:background 0.2s,color 0.2s,border-color 0.2s,transform 0.15s;
+}
+.count-cell-val.cv-active{background:var(--count-dim);color:var(--count);border-color:var(--count-act);transform:scale(1.1);}
+.count-cell-val.cv-prefix{background:#1f1f0e;color:var(--pivot);border-color:#4a4020;transform:scale(1.1);}
+.count-cell-val.cv-place{background:#0d1a1a;color:var(--ptr-i);border-color:#204040;transform:scale(1.1);}
+.count-cell-val.cv-zero{color:#30324a;}
+
+/* formula strip */
+.formula-strip{
+  margin-top:6px;font-family:'Source Code Pro',monospace;font-size:0.65rem;
+  color:var(--muted);min-height:18px;line-height:1.5;
+}
+.formula-strip .f-count{color:var(--count);font-weight:700;}
+.formula-strip .f-prefix{color:var(--pivot);font-weight:700;}
+.formula-strip .f-place{color:var(--ptr-i);font-weight:700;}
+
+/* Output array (placement phase) */
+.output-row{
+  margin-top:8px;display:flex;gap:3px;align-items:center;flex-wrap:wrap;
+}
+.output-cell{
+  font-family:'Source Code Pro',monospace;font-size:0.7rem;font-weight:700;
+  min-width:28px;height:26px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);
+  transition:all 0.2s;
+}
+.output-cell.oc-filled{background:var(--count-dim);color:var(--count);border-color:var(--count-act);}
+.output-cell.oc-just-placed{background:var(--count-act);color:#fff;transform:scale(1.12);}
+.output-cell-idx{font-family:'Source Code Pro',monospace;font-size:0.48rem;color:var(--muted);text-align:center;margin-top:1px;}
+.output-label{font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-right:4px;white-space:nowrap;}
+
+/* ─── RADIX BUCKETS ─────────────────────────────────────────── */
+.radix-bucket-section{
+  padding:10px 14px;border-top:1px solid var(--border);
+}
+.radix-pass-info{
+  display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap;
+}
+.radix-pass-badge{
+  font-family:'Source Code Pro',monospace;font-size:0.6rem;padding:3px 8px;
+  border-radius:4px;background:var(--radix-dim);color:var(--radix);border:1px solid var(--radix-act);
+}
+.radix-buckets-scroll{overflow-x:auto;padding-bottom:4px;}
+.radix-buckets{display:flex;gap:5px;min-width:max-content;}
+.radix-bucket{
+  min-width:42px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:5px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  transition:border-color 0.2s;
+}
+.radix-bucket.rb-active{border-color:var(--radix-act);}
+.rb-digit{font-family:'Source Code Pro',monospace;font-size:0.6rem;color:var(--radix);font-weight:700;margin-bottom:2px;}
+.rb-items{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:20px;}
+.rb-item{
+  font-family:'Source Code Pro',monospace;font-size:0.68rem;color:var(--text);
+  background:var(--radix-dim);border:1px solid #3a1a44;padding:1px 6px;border-radius:3px;
+  animation:popIn 0.15s ease;
+}
+.rb-item.rb-just-added{background:var(--radix-act);color:#fff;border-color:var(--radix);}
+@keyframes popIn{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* digit highlight on bars */
+.digit-highlight{
+  font-family:'Source Code Pro',monospace;font-size:0.55rem;font-weight:700;
+  text-align:center;margin-bottom:1px;flex-shrink:0;height:14px;line-height:14px;
+}
+
+.subarray-display{
+  padding:8px 14px;min-height:32px;
+  font-family:'Source Code Pro',monospace;font-size:0.67rem;color:var(--muted);
+  border-top:1px solid var(--border);line-height:1.6;
+}
+.subarray-display .hl{color:var(--text);}
+.subarray-display .c-hl{color:var(--count);font-weight:700;}
+.subarray-display .r-hl{color:var(--radix);font-weight:700;}
+.subarray-display .p-hl{color:var(--pivot);font-weight:700;}
+.subarray-display .s-hl{color:var(--sorted);font-weight:700;}
+.subarray-display .i-hl{color:var(--ptr-i);font-weight:700;}
+
+.explanation{padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border);font-size:0.8rem;line-height:1.65;color:var(--text);min-height:60px;}
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--border);}
+.legend-item{display:flex;align-items:center;gap:3px;font-family:'Source Code Pro',monospace;font-size:0.54rem;color:var(--muted);text-transform:uppercase;}
+.ldot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+.controls-row{display:flex;align-items:center;gap:6px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.ctrl-btn{padding:5px 12px;border-radius:6px;border:none;font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.76rem;cursor:pointer;transition:all 0.15s;}
+.ctrl-btn:active{transform:scale(0.97);}
+.ctrl-btn:disabled{opacity:0.22;cursor:not-allowed;}
+.ctrl-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.ctrl-ghost:hover:not(:disabled){color:var(--text);border-color:var(--muted);}
+.count-panel .ctrl-primary{background:var(--count-dim);color:var(--count);border:1px solid var(--count-act);}
+.count-panel .ctrl-primary:hover:not(:disabled){background:var(--count-act);color:#fff;}
+.radix-panel .ctrl-primary{background:var(--radix-dim);color:var(--radix);border:1px solid var(--radix-act);}
+.radix-panel .ctrl-primary:hover:not(:disabled){background:var(--radix-act);color:#fff;}
+
+.complexity{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:600px){.complexity{grid-template-columns:1fr;}}
+.complexity-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.complexity-card h3{font-size:0.78rem;font-weight:700;margin-bottom:8px;}
+.cplx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cplx-item{font-family:'Source Code Pro',monospace;font-size:0.6rem;color:var(--muted);line-height:1.7;}
+.cplx-item strong{color:var(--text);display:block;font-size:0.62rem;}
+.cplx-note{margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;}
+.count-h{color:var(--count);}
+.radix-h{color:var(--radix);}
+
+/* ── LIGHT THEME ──────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --default:#1e2030;--surface2:#181a22;
+}
+
+[data-theme="light"] .bar.default{background:#dde0ee;}
+[data-theme="light"] .bar.partition-r{background:#e8e0d8;border-color:#c8b898;}
+[data-theme="light"] .bar.partition-l{background:#a8b4d8;}
+[data-theme="light"] .bar.scanning{background:#b8c8e8;}
+[data-theme="light"] .bar.shifting{background:#d8b8e8;}
+[data-theme="light"] .bar.pass-done{background:#b8d8c8;}
+[data-theme="light"] .bar.count-dim2{background:#dde8dd;border-color:#aacaaa;}
+[data-theme="light"] .bar.radix-bucket{background:#e8d8f0;border-color:#c8a8d8;}
+[data-theme="light"] .rb-item{color:#1a1c28;}
+[data-theme="light"] .count-cell-val{background:#eef0f5;color:#52556e;}
+[data-theme="light"] .count-cell-val.cv-zero{color:#b0b8cc;}
+[data-theme="light"] .complexity-card{background:var(--surface);}
+[data-theme="light"] .explanation{background:var(--surface2);}
+
+[data-theme="light"]{
+  --bg:#f4f5f8;--surface:#ffffff;--surface2:#eef0f5;--border:#d0d4e0;
+  --text:#1a1c28;--muted:#8890a8;
+}
+/* Theme toggle */
+.theme-toggle{
+  position:fixed;top:14px;right:16px;z-index:200;
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;transition:background 0.2s,border-color 0.2s,transform 0.15s;
+  box-shadow:0 2px 10px #0003;
+}
+.theme-toggle:hover{transform:scale(1.12);}
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+.theme-toggle{display:none!important}
+header h1{background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--text)!important;font-weight:700!important;letter-spacing:-.02em!important;font-size:clamp(1.35rem,2.4vw,1.8rem)!important}
+header p{color:var(--muted)!important}
+.panel,.complexity-card,.array-controls{box-shadow:0 1px 2px rgba(27,27,31,.04)}
+.ctrl-primary:hover:not(:disabled){color:#fff!important}
+:root,:root[data-theme]{--count:#16A34A!important;--count-dim:#DCFCE7!important;--count-act:#22C55E!important;--radix:#9333EA!important;--radix-dim:#F3E8FF!important;--radix-act:#A855F7!important;--pivot:#B45309!important;--ptr-i:#0E7490!important;--default:#E2E3E8!important;--radix-bucket:#E8D8F0}
+.phase-tab.active-prefix,.count-cell-val.cv-prefix{background:#FEF3C7!important;border-color:#FCD34D!important}
+.phase-tab.active-place,.count-cell-val.cv-place{background:#CFFAFE!important;border-color:#67E8F9!important}
+.rb-item{border-color:#E9D5FF!important}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Counting Sort &amp; Radix Sort</h1>
+  <p>Integer Sorting · Prefix Sum · In-Class Walkthrough</p>
+</header>
+
+<div class="array-controls">
+  <label>Array:</label>
+  <input type="text" id="arrayInput" value="4, 2, 2, 8, 3, 3, 1" />
+  <button class="btn" onclick="randomArray()">Random</button>
+  <button class="btn" onclick="applyArray()">Apply ↵</button>
+  <div class="speed-control">
+    <label>Speed:</label>
+    <input type="range" id="speedSlider" min="1" max="5" value="3" />
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- COUNTING SORT -->
+  <div class="panel count-panel">
+    <div class="panel-header">
+      <div class="panel-title count-title">Counting Sort <span class="badge count-badge">Prefix Sum</span></div>
+      <span class="step-counter" id="countCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="countBars"></div></div>
+
+    <!-- Count / Prefix table -->
+    <div class="count-table-section">
+      <div class="phase-tabs" id="countPhaseTabs">
+        <div class="phase-tab" id="ptab-count">① Count</div>
+        <div class="phase-tab" id="ptab-prefix">② Prefix Sum</div>
+        <div class="phase-tab" id="ptab-place">③ Place</div>
+      </div>
+      <div class="section-label" id="countTableLabel">Count Array</div>
+      <div class="count-table-scroll"><div class="count-table" id="countTable"></div></div>
+      <div class="formula-strip" id="countFormula"></div>
+      <!-- Output array row (shown during placement) -->
+      <div id="outputRowWrap" style="display:none">
+        <div class="section-label" style="margin-top:8px;">Output Array</div>
+        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;" id="outputRow"></div>
+      </div>
+    </div>
+
+    <div class="subarray-display" id="countSubarray">Ready.</div>
+    <div class="explanation" id="countExplanation">
+      Counting Sort counts how many times each value appears, builds a prefix sum to find each value's final position, then places elements into the output.
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--count-act)"></div>① Counting</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--pivot)"></div>② Prefix</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--ptr-i)"></div>③ Placing</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('count')">↺ Reset</button>
+      <button class="ctrl-btn ctrl-ghost" id="countPrev" onclick="step('count',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="countNext" onclick="step('count',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="countPlay" onclick="togglePlay('count')">▶ Auto</button>
+    </div>
+  </div>
+
+  <!-- RADIX SORT -->
+  <div class="panel radix-panel">
+    <div class="panel-header">
+      <div class="panel-title radix-title">Radix Sort <span class="badge radix-badge">Digit by Digit</span></div>
+      <span class="step-counter" id="radixCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="radixBars"></div></div>
+
+    <div class="radix-bucket-section">
+      <div class="radix-pass-info">
+        <div class="section-label" style="margin:0">Buckets</div>
+        <div class="radix-pass-badge" id="radixPassBadge">Pass —</div>
+      </div>
+      <div class="radix-buckets-scroll"><div class="radix-buckets" id="radixBuckets"></div></div>
+    </div>
+
+    <div class="subarray-display" id="radixSubarray">Ready.</div>
+    <div class="explanation" id="radixExplanation">
+      Radix Sort processes digits from least significant (1s) to most significant. At each pass it distributes elements into buckets 0–9 by that digit, then collects them back in order.
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--radix)"></div>Active digit</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--radix-bucket,#2a1a30)"></div>In bucket</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('radix')">↺ Reset</button>
+      <button class="ctrl-btn ctrl-ghost" id="radixPrev" onclick="step('radix',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="radixNext" onclick="step('radix',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="radixPlay" onclick="togglePlay('radix')">▶ Auto</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="complexity">
+  <div class="complexity-card">
+    <h3 class="count-h">Counting Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n + k)</div>
+      <div class="cplx-item"><strong>Average</strong>O(n + k)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n + k)</div>
+    </div>
+    <div class="cplx-note">
+      <span>Space: O(k) where k = value range</span>
+      <span>Stable ✓</span>
+      <span>Only integers</span>
+    </div>
+  </div>
+  <div class="complexity-card">
+    <h3 class="radix-h">Radix Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n · d)</div>
+      <div class="cplx-item"><strong>Average</strong>O(n · d)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n · d)</div>
+    </div>
+    <div class="cplx-note">
+      <span>Space: O(n + k)</span>
+      <span>Stable ✓</span>
+      <span>d = number of digits</span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+let arr=[4,2,2,8,3,3,1];
+const stepsMap={},idxMap={},timerMap={};
+function getDelay(){return[1200,750,440,210,75][parseInt(document.getElementById('speedSlider').value)-1];}
+
+function randomArray(){
+  const n=Math.floor(Math.random()*5)+5;
+  // Keep values small for counting sort readability
+  arr=Array.from({length:n},()=>Math.floor(Math.random()*88)+1);
+  document.getElementById('arrayInput').value=arr.join(', ');
+  buildAll();
+}
+function applyArray(){
+  const p=document.getElementById('arrayInput').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>0);
+  if(p.length>=2){arr=p;buildAll();}
+}
+document.getElementById('arrayInput').addEventListener('keydown',e=>{if(e.key==='Enter')applyArray();});
+
+// ══════════════════════════════════════════════════════════════
+//  COUNTING SORT — 3-phase step generator
+// ══════════════════════════════════════════════════════════════
+function genCount(input){
+  const steps=[];
+  const orig=[...input];
+  const n=orig.length;
+  const minV=Math.min(...orig), maxV=Math.max(...orig);
+  const range=maxV-minV+1;
+
+  // Helper: build a step object
+  function mkStep({barArr, barColors, countArr, countActiveIdx, phase,
+                   formula, outputArr, outputJustPlaced, expl, sub}){
+    steps.push({
+      barArr:[...barArr], barColors:[...barColors],
+      countArr:[...countArr], countActiveIdx: countActiveIdx??-1,
+      phase,          // 'count' | 'prefix' | 'place' | 'done'
+      formula: formula||'',
+      outputArr: outputArr?[...outputArr]:null,
+      outputJustPlaced: outputJustPlaced??-1,
+      explanation:expl, subarray:sub
+    });
+  }
+
+  const countArr=new Array(range).fill(0);
+  const outputArr=new Array(n).fill(null);
+
+  // ── INITIAL ──────────────────────────────────────────────────
+  mkStep({
+    barArr:orig, barColors:orig.map(()=>'default'),
+    countArr, countActiveIdx:-1, phase:'count',
+    formula:'',
+    expl:`🟢 Start: [${orig.join(', ')}]. Range = ${minV}–${maxV} (${range} buckets).\n\nPhase 1: initialise count[ ] to all zeros.`,
+    sub:`min = <span class="c-hl">${minV}</span>  max = <span class="c-hl">${maxV}</span>  range = <span class="c-hl">${range}</span>`
+  });
+
+  // ── PHASE 1: COUNT ───────────────────────────────────────────
+  for(let i=0;i<n;i++){
+    const v=orig[i], ci=v-minV;
+    countArr[ci]++;
+    mkStep({
+      barArr:orig, barColors:orig.map((_,x)=>x===i?'count-active':'default'),
+      countArr, countActiveIdx:ci, phase:'count',
+      formula:`count[${ci}]++ → ${countArr[ci]}   (value ${v} maps to bucket index ${ci})`,
+      expl:`📊 Read a[${i}] = ${v}.  Bucket index = ${v} − ${minV} = ${ci}.  count[${ci}] becomes ${countArr[ci]}.`,
+      sub:`Processing <span class="c-hl">${v}</span>  →  count[<span class="c-hl">${ci}</span>] = <span class="c-hl">${countArr[ci]}</span>`
+    });
+  }
+  mkStep({
+    barArr:orig, barColors:orig.map(()=>'default'),
+    countArr, countActiveIdx:-1, phase:'count',
+    formula:`count[ ] = [${countArr.join(', ')}]`,
+    expl:`✅ Count phase complete!\n\ncount[i] = number of times value (i + ${minV}) appears in the input.`,
+    sub:`Counts: [<span class="c-hl">${countArr.join(', ')}</span>]`
+  });
+
+  // ── PHASE 2: PREFIX SUM ──────────────────────────────────────
+  mkStep({
+    barArr:orig, barColors:orig.map(()=>'default'),
+    countArr:[...countArr], countActiveIdx:-1, phase:'prefix',
+    formula:'Now convert to prefix sums: count[i] += count[i−1]',
+    expl:`➕ Phase 2: Prefix Sum.\n\nWe accumulate: count[i] += count[i−1].\nAfterwards, count[i] holds the index of the LAST position where value (i + ${minV}) should go in the output.`,
+    sub:`Building prefix sums…`
+  });
+
+  const snapBefore=[...countArr]; // values before accumulation
+  for(let i=1;i<range;i++){
+    const before=countArr[i];
+    countArr[i]+=countArr[i-1];
+    mkStep({
+      barArr:orig, barColors:orig.map(()=>'default'),
+      countArr:[...countArr], countActiveIdx:i, phase:'prefix',
+      formula:`count[${i}] = count[${i}] + count[${i-1}]  =  ${before} + ${countArr[i]-before}  =  ${countArr[i]}`,
+      expl:`➕ count[${i}] += count[${i-1}]  →  ${before} + ${countArr[i]-before} = ${countArr[i]}.\n\ncount[${i}] = ${countArr[i]} means value ${i+minV} goes to output position ${countArr[i]-1} (0-indexed).`,
+      sub:`count[<span class="p-hl">${i}</span>] = <span class="p-hl">${countArr[i]}</span>  (last output index for value ${i+minV})`
+    });
+  }
+  mkStep({
+    barArr:orig, barColors:orig.map(()=>'default'),
+    countArr:[...countArr], countActiveIdx:-1, phase:'prefix',
+    formula:`prefix[ ] = [${countArr.join(', ')}]`,
+    expl:`✅ Prefix sums done!\n\ncount[i] now holds: "the next available position (from the right) for value (i + ${minV})".\nWe place elements right-to-left for stability.`,
+    sub:`Prefix sums: [<span class="p-hl">${countArr.join(', ')}</span>]`
+  });
+
+  // ── PHASE 3: PLACE (right-to-left for stability) ─────────────
+  mkStep({
+    barArr:orig, barColors:orig.map(()=>'default'),
+    countArr:[...countArr], countActiveIdx:-1, phase:'place',
+    outputArr, outputJustPlaced:-1,
+    formula:'Traverse input RIGHT→LEFT. Place each element using its count index, then decrement.',
+    expl:`📥 Phase 3: Placement (right-to-left for stability).\n\nFor each a[i]: pos = count[a[i]−${minV}] − 1.  Place a[i] at output[pos].  Decrement count[a[i]−${minV}].`,
+    sub:`Output array initialised (empty)`
+  });
+
+  for(let i=n-1;i>=0;i--){
+    const v=orig[i], ci=v-minV;
+    const pos=countArr[ci]-1;
+    outputArr[pos]=v;
+    countArr[ci]--;
+    mkStep({
+      barArr:orig, barColors:orig.map((_,x)=>x===i?'count-active':'count-dim2'),
+      countArr:[...countArr], countActiveIdx:ci, phase:'place',
+      outputArr, outputJustPlaced:pos,
+      formula:`a[${i}]=${v}  →  pos = count[${ci}]−1 = ${pos}  →  count[${ci}] decremented to ${countArr[ci]}`,
+      expl:`📥 a[${i}] = ${v}.  Bucket index = ${ci}.  count[${ci}] was ${countArr[ci]+1} → position = ${countArr[ci]+1}−1 = ${pos}.  Place ${v} at output[${pos}].  count[${ci}] → ${countArr[ci]}.`,
+      sub:`Placing <span class="c-hl">${v}</span> at output[<span class="i-hl">${pos}</span>]  ·  count[${ci}] → <span class="i-hl">${countArr[ci]}</span>`
+    });
+  }
+
+  // final
+  steps.push({
+    barArr:[...outputArr], barColors:outputArr.map(()=>'sorted'),
+    countArr:[...countArr], countActiveIdx:-1, phase:'done',
+    formula:'', outputArr:[...outputArr], outputJustPlaced:-1,
+    explanation:`🎉 Sorted: [${outputArr.join(', ')}]`,
+    subarray:`<span class="s-hl">Sorted: [${outputArr.join(', ')}]</span>`
+  });
+  return steps;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RADIX SORT — LSD, shows buckets live
+// ══════════════════════════════════════════════════════════════
+function genRadix(input){
+  const steps=[];
+  const a=[...input];
+  const maxVal=Math.max(...a);
+  const numDigits=String(maxVal).length;
+
+  function getDigit(num,place){return Math.floor(num/Math.pow(10,place))%10;}
+  const placeLabel=p=>['1s (units)','10s','100s','1000s'][p]||`10^${p}`;
+
+  const push=(arr,colors,buckets,bucketLabel,passNum,expl,sub)=>steps.push({
+    barArr:[...arr], barColors:[...colors],
+    buckets:{grid:buckets.map(b=>[...b]),label:bucketLabel,passNum},
+    justAdded:{},
+    explanation:expl, subarray:sub,
+    countArr:null, outputArr:null
+  });
+
+  push([...a],a.map(()=>'default'),Array.from({length:10},()=>[]),'—',0,
+    `🟣 Start: [${a.join(', ')}].\n\nMax value = ${maxVal} → ${numDigits} digit pass(es).\nLSD Radix Sort: process digits from least significant (1s) to most significant.`,
+    `Digits to process: <span class="r-hl">${numDigits}</span>  (pass${numDigits>1?'es':''}: ${Array.from({length:numDigits},(_,i)=>placeLabel(i)).join(' → ')})`);
+
+  for(let place=0;place<numDigits;place++){
+    const pl=placeLabel(place);
+    const buckets=Array.from({length:10},()=>[]);
+
+    push([...a],a.map(()=>'default'),buckets,`Pass ${place+1}: sort by ${pl}`,place+1,
+      `📋 Pass ${place+1} of ${numDigits}: sort by the <strong>${pl}</strong> digit.\n\nWe'll distribute each element into bucket[digit], then collect 0→9.`,
+      `Current array: [<span class="r-hl">${a.join(', ')}</span>]`);
+
+    // Distribute one by one
+    for(let i=0;i<a.length;i++){
+      const d=getDigit(a[i],place);
+      // Show which element we're reading
+      const stepBuckets=buckets.map(b=>[...b]);
+      const bc=a.map((_,x)=>x===i?'digit-active':x<i?'radix-bucket':'default');
+
+      // Build justAdded map for rendering
+      const ja={bucketIdx:d, itemVal:a[i]};
+
+      buckets[d].push(a[i]);
+      steps.push({
+        barArr:[...a], barColors:bc,
+        buckets:{grid:buckets.map(b=>[...b]),label:`Pass ${place+1}: ${pl}`,passNum:place+1},
+        justAdded:ja,
+        explanation:`🔢 a[${i}] = ${a[i]}.  ${pl} digit = <strong>${d}</strong>.  Drop into bucket[${d}].`,
+        subarray:`<span class="r-hl">${a[i]}</span>  →  bucket[<span class="r-hl">${d}</span>]`,
+        countArr:null, outputArr:null
+      });
+    }
+
+    // Show filled buckets before collect
+    steps.push({
+      barArr:[...a], barColors:a.map(()=>'radix-bucket'),
+      buckets:{grid:buckets.map(b=>[...b]),label:`Buckets filled — pass ${place+1}`,passNum:place+1},
+      justAdded:{},
+      explanation:`📦 All elements distributed by ${pl} digit.\n\nNow collect left→right from bucket 0 to bucket 9.`,
+      subarray:`Collecting buckets 0 → 9…`,
+      countArr:null, outputArr:null
+    });
+
+    // Collect
+    let idx=0;
+    for(let d=0;d<10;d++)for(const v of buckets[d])a[idx++]=v;
+
+    const isLast=(place===numDigits-1);
+    push([...a],a.map(()=>isLast?'sorted':'radix-active'),Array.from({length:10},()=>[]),`After pass ${place+1}`,place+1,
+      `✅ Collected. Array after pass ${place+1} (sorted by ${pl}): [${a.join(', ')}]${isLast?'\n\n🎉 All digit passes done — array is fully sorted!':''}`,
+      isLast?`<span class="s-hl">Sorted: [${a.join(', ')}]</span>`:`After ${pl}: [<span class="r-hl">${a.join(', ')}</span>]`);
+  }
+  return steps;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+function renderBars(id, barArr, barColors){
+  const c=document.getElementById(id); if(!c)return;
+  const max=Math.max(...barArr,1);
+  c.innerHTML='';
+  const BAR_H=Math.max(100,c.parentElement.clientHeight-28);
+  barArr.forEach((val,i)=>{
+    const col=document.createElement('div'); col.className='bar-col';
+    const num=document.createElement('div'); num.className='bar-num'; num.textContent=val||'';
+    const bar=document.createElement('div'); bar.className='bar '+(barColors[i]||'default');
+    bar.style.height=Math.max(4,(val/max)*BAR_H)+'px';
+    col.appendChild(num); col.appendChild(bar);
+    c.appendChild(col);
+  });
+}
+
+function renderRadixBars(id, barArr, barColors, step, place){
+  const c=document.getElementById(id); if(!c)return;
+  const max=Math.max(...barArr,1);
+  c.innerHTML='';
+  const BAR_H=Math.max(80,c.parentElement.clientHeight-42);
+  barArr.forEach((val,i)=>{
+    const col=document.createElement('div'); col.className='bar-col';
+    // Show the active digit above each bar
+    const dh=document.createElement('div'); dh.className='digit-highlight';
+    if(place>=0 && val>0){
+      const d=Math.floor(val/Math.pow(10,place))%10;
+      dh.textContent=d;
+      dh.style.color=(barColors[i]==='digit-active')?'var(--radix)':'var(--muted)';
+    }
+    const num=document.createElement('div'); num.className='bar-num'; num.textContent=val;
+    const bar=document.createElement('div'); bar.className='bar '+(barColors[i]||'default');
+    bar.style.height=Math.max(4,(val/max)*BAR_H)+'px';
+    col.appendChild(dh); col.appendChild(num); col.appendChild(bar);
+    c.appendChild(col);
+  });
+}
+
+function renderCountUI(step, minV){
+  // Phase tabs
+  ['count','prefix','place'].forEach(ph=>{
+    const t=document.getElementById(`ptab-${ph}`);
+    t.className='phase-tab'+(step.phase===ph||
+      (step.phase==='done'&&ph==='place')?' active-'+ph:'');
+  });
+
+  // Label
+  const labelMap={count:'① Count Array',prefix:'② Prefix Sums (cumulative)',place:'③ Placement (count decrements)',done:'③ Placement — done'};
+  document.getElementById('countTableLabel').textContent=labelMap[step.phase]||'Count Array';
+
+  // Table cells
+  const t=document.getElementById('countTable'); t.innerHTML='';
+  step.countArr.forEach((v,i)=>{
+    const cell=document.createElement('div'); cell.className='count-cell';
+    const idx=document.createElement('div'); idx.className='count-cell-idx'; idx.textContent=i+minV;
+    const val=document.createElement('div'); val.className='count-cell-val';
+    val.textContent=v;
+    if(i===step.countActiveIdx){
+      val.classList.add(step.phase==='count'?'cv-active':step.phase==='prefix'?'cv-prefix':'cv-place');
+    } else if(v===0){ val.classList.add('cv-zero'); }
+    cell.appendChild(idx); cell.appendChild(val); t.appendChild(cell);
+  });
+
+  // Formula strip
+  document.getElementById('countFormula').innerHTML =
+    `<span class="f-${step.phase==='done'?'place':step.phase}">${step.formula||''}</span>`;
+
+  // Output array (phase 3)
+  const wrap=document.getElementById('outputRowWrap');
+  const row=document.getElementById('outputRow');
+  if(step.phase==='place'||step.phase==='done'){
+    wrap.style.display='block'; row.innerHTML='';
+    (step.outputArr||[]).forEach((v,i)=>{
+      const cell=document.createElement('div'); cell.className='output-cell';
+      if(v!==null){
+        cell.textContent=v;
+        cell.classList.add(i===step.outputJustPlaced?'oc-just-placed':'oc-filled');
+      } else { cell.textContent=''; }
+      row.appendChild(cell);
+    });
+  } else {
+    wrap.style.display='none';
+  }
+}
+
+function renderRadixBuckets(step){
+  const c=document.getElementById('radixBuckets'); if(!c)return;
+  const badge=document.getElementById('radixPassBadge');
+  if(step.buckets){
+    const {grid,label,passNum}=step.buckets;
+    if(badge)badge.textContent=label||'—';
+    c.innerHTML='';
+    grid.forEach((items,d)=>{
+      const bk=document.createElement('div'); bk.className='radix-bucket';
+      const isActive=step.justAdded&&step.justAdded.bucketIdx===d;
+      if(isActive)bk.classList.add('rb-active');
+      const lbl=document.createElement('div'); lbl.className='rb-digit'; lbl.textContent=d;
+      const its=document.createElement('div'); its.className='rb-items';
+      items.forEach((v,ii)=>{
+        const it=document.createElement('div'); it.className='rb-item';
+        if(isActive&&ii===items.length-1)it.classList.add('rb-just-added');
+        it.textContent=v; its.appendChild(it);
+      });
+      bk.appendChild(lbl); bk.appendChild(its); c.appendChild(bk);
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  UPDATE UI
+// ══════════════════════════════════════════════════════════════
+let countMinV=0;
+function updateUI(algo){
+  const steps=stepsMap[algo], idx=idxMap[algo];
+  if(!steps||!steps.length)return;
+  const s=steps[idx];
+
+  if(algo==='count'){
+    renderBars('countBars', s.barArr, s.barColors);
+    renderCountUI(s, countMinV);
+    document.getElementById('countExplanation').innerHTML=s.explanation;
+    document.getElementById('countSubarray').innerHTML=s.subarray;
+    document.getElementById('countCounter').textContent=`Step ${idx+1} / ${steps.length}`;
+    document.getElementById('countPrev').disabled=idx===0;
+    document.getElementById('countNext').disabled=idx===steps.length-1;
+  } else {
+    // Determine current pass/place for digit labels
+    const place=(s.buckets&&s.buckets.passNum>0)?s.buckets.passNum-1:-1;
+    renderRadixBars('radixBars', s.barArr, s.barColors, s, place);
+    renderRadixBuckets(s);
+    document.getElementById('radixExplanation').innerHTML=s.explanation;
+    document.getElementById('radixSubarray').innerHTML=s.subarray;
+    document.getElementById('radixCounter').textContent=`Step ${idx+1} / ${steps.length}`;
+    document.getElementById('radixPrev').disabled=idx===0;
+    document.getElementById('radixNext').disabled=idx===steps.length-1;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════════════════════
+function step(algo,dir){
+  idxMap[algo]=Math.max(0,Math.min(stepsMap[algo].length-1,(idxMap[algo]||0)+dir));
+  updateUI(algo);
+}
+function resetAlgo(algo){stopPlay(algo);idxMap[algo]=0;updateUI(algo);}
+function togglePlay(algo){
+  if(timerMap[algo])stopPlay(algo);
+  else{
+    document.getElementById(`${algo}Play`).textContent='⏸ Pause';
+    timerMap[algo]=setInterval(()=>{
+      if((idxMap[algo]||0)>=stepsMap[algo].length-1){stopPlay(algo);return;}
+      step(algo,1);
+    },getDelay());
+  }
+}
+function stopPlay(algo){
+  if(timerMap[algo]){clearInterval(timerMap[algo]);delete timerMap[algo];
+    document.getElementById(`${algo}Play`).textContent='▶ Auto';}
+}
+
+function buildAll(){
+  ['count','radix'].forEach(k=>stopPlay(k));
+  countMinV=Math.min(...arr);
+  stepsMap.count=genCount(arr);
+  stepsMap.radix=genRadix(arr);
+  idxMap.count=0; idxMap.radix=0;
+  updateUI('count'); updateUI('radix');
+}
+buildAll();
+</script>
+
+</body>
+</html>

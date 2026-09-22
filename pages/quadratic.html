@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bubble, Selection &amp; Insertion Sort</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --bubble:#e8a44a;--bubble-dim:#251a08;--bubble-act:#c4862e;
+  --select:#4ab8e8;--select-dim:#082030;--select-act:#2e9ac4;
+  --insert:#e84a8a;--insert-dim:#250818;--insert-act:#c42e6a;
+  --sorted:#5aaa7e;--comparing:#9b6bb5;--swapping:#e87070;
+  --default:#1e2030;--ptr-a:#e8d44a;--ptr-b:#4ae8d4;--ptr-c:#e84aaa;
+}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;min-height:100vh;}
+.container{max-width:1240px;margin:0 auto;padding:22px 16px;}
+
+header{text-align:center;margin-bottom:22px;}
+header h1{
+  font-size:clamp(1.6rem,3.2vw,2.6rem);font-weight:800;letter-spacing:-0.5px;
+  background:linear-gradient(120deg,var(--bubble) 0%,var(--select) 50%,var(--insert) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;
+}
+header p{color:var(--muted);font-family:'Source Code Pro',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;}
+
+/* ── Array controls ─────────────────────────────────────────── */
+.array-controls{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.array-controls label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+.array-controls input[type="text"]{
+  flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-family:'Source Code Pro',monospace;font-size:0.85rem;padding:6px 10px;outline:none;transition:border-color 0.2s;
+}
+.array-controls input[type="text"]:focus{border-color:var(--bubble);}
+.btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.78rem;cursor:pointer;transition:all 0.15s;background:var(--surface2);color:var(--muted);}
+.btn:hover{color:var(--text);border-color:var(--muted);}
+.speed-control{display:flex;align-items:center;gap:7px;}
+.speed-control label{font-family:'Source Code Pro',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+input[type="range"]{-webkit-appearance:none;width:80px;height:3px;border-radius:2px;background:var(--border);outline:none;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--bubble);cursor:pointer;}
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.panels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:14px;}
+@media(max-width:900px){.panels{grid-template-columns:1fr 1fr;}}
+@media(max-width:560px){.panels{grid-template-columns:1fr;}}
+
+/* ── Panel shell ─────────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.panel-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.panel-title{font-size:0.88rem;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;gap:6px;}
+.bubble-title{color:var(--bubble);}
+.select-title{color:var(--select);}
+.insert-title{color:var(--insert);}
+.badge{font-family:'Source Code Pro',monospace;font-size:0.53rem;padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.bubble-badge{background:var(--bubble-dim);color:var(--bubble);}
+.select-badge{background:var(--select-dim);color:var(--select);}
+.insert-badge{background:var(--insert-dim);color:var(--insert);}
+.step-counter{font-family:'Source Code Pro',monospace;font-size:0.62rem;color:var(--muted);}
+
+/* ── Bars ────────────────────────────────────────────────────── */
+.bars-outer{padding:8px 10px 0;height:200px;flex-shrink:0;}
+.bars-container{height:100%;display:flex;align-items:flex-end;gap:3px;}
+.bar-col{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;}
+
+/* ptr-zone always rendered at fixed height so bars don't shift */
+.ptr-zone{
+  height:28px;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+}
+.ptr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.ptr-dot.hidden{background:transparent!important;box-shadow:none!important;}
+.ptr-lbl{font-family:'Source Code Pro',monospace;font-size:0.46rem;font-weight:700;line-height:1;}
+.ptr-lbl.hidden{color:transparent!important;}
+
+.bar-num{font-family:'Source Code Pro',monospace;font-size:0.5rem;color:var(--muted);margin-bottom:2px;flex-shrink:0;}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:height 0.2s ease,background 0.15s ease;flex-shrink:0;}
+.bar.default   {background:var(--default);}
+.bar.comparing {background:var(--comparing);}
+.bar.swapping  {background:var(--swapping);box-shadow:0 0 8px #e8707060;}
+.bar.sorted    {background:var(--sorted);}
+.bar.minimum   {background:var(--ptr-a);box-shadow:0 0 8px #e8d44a60;}  /* selection: current min */
+.bar.scanning  {background:#2a3060;}                                      /* selection: scanning zone */
+.bar.key       {background:var(--ptr-c);box-shadow:0 0 8px #e84aaa60;}  /* insertion: key element */
+.bar.shifting  {background:#2a1840;}                                      /* insertion: shifting zone */
+.bar.pass-done {background:#1e3028;}                                      /* bubble: finished pass */
+
+/* ── Info strips ─────────────────────────────────────────────── */
+/* Pass indicator row */
+.pass-row{
+  padding:5px 14px;border-top:1px solid var(--border);
+  display:flex;gap:6px;align-items:center;flex-shrink:0;min-height:28px;
+  font-family:'Source Code Pro',monospace;font-size:0.62rem;color:var(--muted);
+}
+.pass-pip{
+  width:9px;height:9px;border-radius:2px;flex-shrink:0;
+  transition:background 0.2s;
+}
+
+.subarray-display{
+  padding:7px 14px;min-height:30px;flex-shrink:0;
+  font-family:'Source Code Pro',monospace;font-size:0.64rem;color:var(--muted);
+  border-top:1px solid var(--border);line-height:1.6;
+}
+.subarray-display .hl  {color:var(--text);}
+.subarray-display .b-hl{color:var(--bubble);font-weight:700;}
+.subarray-display .s-hl{color:var(--sorted);font-weight:700;}
+.subarray-display .i-hl{color:var(--insert);font-weight:700;}
+.subarray-display .sel-hl{color:var(--select);font-weight:700;}
+.subarray-display .min-hl{color:var(--ptr-a);font-weight:700;}
+.subarray-display .key-hl{color:var(--ptr-c);font-weight:700;}
+
+.explanation{
+  padding:9px 14px;background:var(--surface2);border-top:1px solid var(--border);
+  font-size:0.78rem;line-height:1.65;color:var(--text);min-height:72px;flex-grow:1;
+}
+
+/* ── Legend ─────────────────────────────────────────────────── */
+.legend{display:flex;gap:7px;flex-wrap:wrap;padding:7px 14px;border-top:1px solid var(--border);flex-shrink:0;}
+.legend-item{display:flex;align-items:center;gap:3px;font-family:'Source Code Pro',monospace;font-size:0.52rem;color:var(--muted);text-transform:uppercase;}
+.ldot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+.lcirc{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* ── Controls ─────────────────────────────────────────────────── */
+.controls-row{display:flex;align-items:center;gap:5px;padding:9px 14px;border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.ctrl-btn{padding:5px 11px;border-radius:6px;border:none;font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:0.74rem;cursor:pointer;transition:all 0.15s;}
+.ctrl-btn:active{transform:scale(0.97);}
+.ctrl-btn:disabled{opacity:0.22;cursor:not-allowed;}
+.ctrl-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.ctrl-ghost:hover:not(:disabled){color:var(--text);border-color:var(--muted);}
+.bubble-panel .ctrl-primary{background:var(--bubble-dim);color:var(--bubble);border:1px solid var(--bubble-act);}
+.bubble-panel .ctrl-primary:hover:not(:disabled){background:var(--bubble-act);color:#000;}
+.select-panel .ctrl-primary{background:var(--select-dim);color:var(--select);border:1px solid var(--select-act);}
+.select-panel .ctrl-primary:hover:not(:disabled){background:var(--select-act);color:#000;}
+.insert-panel .ctrl-primary{background:var(--insert-dim);color:var(--insert);border:1px solid var(--insert-act);}
+.insert-panel .ctrl-primary:hover:not(:disabled){background:var(--insert-act);color:#fff;}
+
+/* ── Complexity footer ───────────────────────────────────────── */
+.complexity{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+@media(max-width:900px){.complexity{grid-template-columns:1fr 1fr;}}
+@media(max-width:560px){.complexity{grid-template-columns:1fr;}}
+.complexity-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.complexity-card h3{font-size:0.76rem;font-weight:700;margin-bottom:7px;}
+.cplx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.cplx-item{font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--muted);line-height:1.7;}
+.cplx-item strong{color:var(--text);display:block;font-size:0.6rem;}
+.cplx-note{margin-top:5px;padding-top:5px;border-top:1px solid var(--border);font-family:'Source Code Pro',monospace;font-size:0.56rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;}
+.bh{color:var(--bubble);}
+.sh{color:var(--select);}
+.ih{color:var(--insert);}
+
+/* ── LIGHT THEME ──────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0a0b10;--surface:#111318;--surface2:#181a22;--border:#22253a;
+  --text:#d6d8e8;--muted:#52556e;
+  --default:#1e2030;--comparing:#9b6bb5;--swapping:#e87070;--sorted:#5aaa7e;
+}
+
+[data-theme="light"] .bar.default{background:#dde0ee;}
+[data-theme="light"] .bar.partition-r{background:#e8e0d8;border-color:#c8b898;}
+[data-theme="light"] .bar.partition-l{background:#a8b4d8;}
+[data-theme="light"] .bar.scanning{background:#b8c8e8;}
+[data-theme="light"] .bar.shifting{background:#d8b8e8;}
+[data-theme="light"] .bar.pass-done{background:#b8d8c8;}
+[data-theme="light"] .bar.count-dim2{background:#dde8dd;border-color:#aacaaa;}
+[data-theme="light"] .bar.radix-bucket{background:#e8d8f0;border-color:#c8a8d8;}
+[data-theme="light"] .rb-item{color:#1a1c28;}
+[data-theme="light"] .count-cell-val{background:#eef0f5;color:#52556e;}
+[data-theme="light"] .count-cell-val.cv-zero{color:#b0b8cc;}
+[data-theme="light"] .complexity-card{background:var(--surface);}
+[data-theme="light"] .explanation{background:var(--surface2);}
+
+[data-theme="light"]{
+  --bg:#f4f5f8;--surface:#ffffff;--surface2:#eef0f5;--border:#d0d4e0;
+  --text:#1a1c28;--muted:#8890a8;
+}
+/* Theme toggle */
+.theme-toggle{
+  position:fixed;top:14px;right:16px;z-index:200;
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;transition:background 0.2s,border-color 0.2s,transform 0.15s;
+  box-shadow:0 2px 10px #0003;
+}
+.theme-toggle:hover{transform:scale(1.12);}
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+.theme-toggle{display:none!important}
+header h1{background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--text)!important;font-weight:700!important;letter-spacing:-.02em!important;font-size:clamp(1.35rem,2.4vw,1.8rem)!important}
+header p{color:var(--muted)!important}
+.panel,.complexity-card,.array-controls{box-shadow:0 1px 2px rgba(27,27,31,.04)}
+.ctrl-primary:hover:not(:disabled){color:#fff!important}
+:root,:root[data-theme]{--bubble:#D97706!important;--bubble-dim:#FEF3C7!important;--bubble-act:#B45309!important;--select:#0284C7!important;--select-dim:#E0F2FE!important;--select-act:#0369A1!important;--insert:#DB2777!important;--insert-dim:#FCE7F3!important;--insert-act:#BE185D!important;--comparing:#8B5CF6!important;--swapping:#EF4444!important;--default:#E2E3E8!important;--ptr-a:#CA8A04!important;--ptr-b:#0D9488!important;--ptr-c:#DB2777!important;--shifting:#D8B8E8}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Quadratic Sorting Algorithms</h1>
+  <p>Bubble Sort · Selection Sort · Insertion Sort · In-Class Walkthrough</p>
+</header>
+
+<div class="array-controls">
+  <label>Array:</label>
+  <input type="text" id="arrayInput" value="29, 10, 14, 37, 13, 25, 8" />
+  <button class="btn" onclick="randomArray()">Random</button>
+  <button class="btn" onclick="applyArray()">Apply ↵</button>
+  <div class="speed-control">
+    <label>Speed:</label>
+    <input type="range" id="speedSlider" min="1" max="5" value="3" />
+  </div>
+</div>
+
+<div class="panels">
+
+  <!-- ── BUBBLE SORT ─────────────────────────────────────────── -->
+  <div class="panel bubble-panel">
+    <div class="panel-header">
+      <div class="panel-title bubble-title">Bubble Sort <span class="badge bubble-badge">Adjacent Swaps</span></div>
+      <span class="step-counter" id="bubbleCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="bubbleBars"></div></div>
+    <div class="pass-row" id="bubblePassRow">—</div>
+    <div class="subarray-display" id="bubbleSubarray">Ready.</div>
+    <div class="explanation" id="bubbleExplanation">Repeatedly compares adjacent elements and swaps if out of order. Each pass bubbles the largest unsorted element to its final position.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--comparing)"></div>Comparing</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--swapping)"></div>Swapping</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('bubble')">↺</button>
+      <button class="ctrl-btn ctrl-ghost" id="bubblePrev" onclick="step('bubble',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="bubbleNext" onclick="step('bubble',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="bubblePlay" onclick="togglePlay('bubble')">▶ Auto</button>
+    </div>
+  </div>
+
+  <!-- ── SELECTION SORT ──────────────────────────────────────── -->
+  <div class="panel select-panel">
+    <div class="panel-header">
+      <div class="panel-title select-title">Selection Sort <span class="badge select-badge">Find Minimum</span></div>
+      <span class="step-counter" id="selectCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="selectBars"></div></div>
+    <div class="pass-row" id="selectPassRow">—</div>
+    <div class="subarray-display" id="selectSubarray">Ready.</div>
+    <div class="explanation" id="selectExplanation">Finds the minimum element in the unsorted region and swaps it to the front. Repeats for each position.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--ptr-a)"></div>Current min</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--comparing)"></div>Scanning</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--swapping)"></div>Swapping</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('select')">↺</button>
+      <button class="ctrl-btn ctrl-ghost" id="selectPrev" onclick="step('select',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="selectNext" onclick="step('select',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="selectPlay" onclick="togglePlay('select')">▶ Auto</button>
+    </div>
+  </div>
+
+  <!-- ── INSERTION SORT ──────────────────────────────────────── -->
+  <div class="panel insert-panel">
+    <div class="panel-header">
+      <div class="panel-title insert-title">Insertion Sort <span class="badge insert-badge">Shift &amp; Insert</span></div>
+      <span class="step-counter" id="insertCounter">Step 0 / 0</span>
+    </div>
+    <div class="bars-outer"><div class="bars-container" id="insertBars"></div></div>
+    <div class="pass-row" id="insertPassRow">—</div>
+    <div class="subarray-display" id="insertSubarray">Ready.</div>
+    <div class="explanation" id="insertExplanation">Picks each element (the "key") and shifts larger elements right until it finds the correct insertion position.</div>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:var(--ptr-c)"></div>Key</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--shifting,#2a1840)"></div>Shifting</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--comparing)"></div>Comparing</div>
+      <div class="legend-item"><div class="ldot" style="background:var(--sorted)"></div>Sorted</div>
+    </div>
+    <div class="controls-row">
+      <button class="ctrl-btn ctrl-ghost" onclick="resetAlgo('insert')">↺</button>
+      <button class="ctrl-btn ctrl-ghost" id="insertPrev" onclick="step('insert',-1)" disabled>← Prev</button>
+      <button class="ctrl-btn ctrl-primary" id="insertNext" onclick="step('insert',1)">Next →</button>
+      <button class="ctrl-btn ctrl-primary" id="insertPlay" onclick="togglePlay('insert')">▶ Auto</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- complexity -->
+<div class="complexity">
+  <div class="complexity-card">
+    <h3 class="bh">Bubble Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n) *</div>
+      <div class="cplx-item"><strong>Average</strong>O(n²)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n²)</div>
+    </div>
+    <div class="cplx-note"><span>Space: O(1) — in-place</span><span>Stable ✓</span><span>* with early-exit flag</span></div>
+  </div>
+  <div class="complexity-card">
+    <h3 class="sh">Selection Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n²)</div>
+      <div class="cplx-item"><strong>Average</strong>O(n²)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n²)</div>
+    </div>
+    <div class="cplx-note"><span>Space: O(1) — in-place</span><span>Not stable ✗</span><span>Minimal swaps: O(n)</span></div>
+  </div>
+  <div class="complexity-card">
+    <h3 class="ih">Insertion Sort</h3>
+    <div class="cplx-grid">
+      <div class="cplx-item"><strong>Best</strong>O(n) *</div>
+      <div class="cplx-item"><strong>Average</strong>O(n²)</div>
+      <div class="cplx-item"><strong>Worst</strong>O(n²)</div>
+    </div>
+    <div class="cplx-note"><span>Space: O(1) — in-place</span><span>Stable ✓</span><span>* already sorted</span></div>
+  </div>
+</div>
+
+</div><!-- /container -->
+<script>
+let arr=[29,10,14,37,13,25,8];
+const stepsMap={}, idxMap={}, timerMap={};
+function getDelay(){return[1200,750,440,210,75][parseInt(document.getElementById('speedSlider').value)-1];}
+
+function randomArray(){
+  const n=Math.floor(Math.random()*5)+5;
+  arr=Array.from({length:n},()=>Math.floor(Math.random()*88)+5);
+  document.getElementById('arrayInput').value=arr.join(', ');
+  buildAll();
+}
+function applyArray(){
+  const p=document.getElementById('arrayInput').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  if(p.length>=2){arr=p;buildAll();}
+}
+document.getElementById('arrayInput').addEventListener('keydown',e=>{if(e.key==='Enter')applyArray();});
+
+// ═══════════════════════════════════════════════════════════════
+//  BUBBLE SORT
+//  Strategy: optimised with early-exit flag per pass.
+//  Pointers: i (left of comparing pair), i+1 (right).
+// ═══════════════════════════════════════════════════════════════
+function genBubble(input){
+  const steps=[], a=[...input], n=a.length;
+  let sortedFrom=n; // elements at index >= sortedFrom are sorted
+
+  const push=(colors,expl,sub,pass,passLen)=>steps.push({
+    array:[...a], colors, explanation:expl, subarray:sub,
+    pass, passLen, pointers:null
+  });
+
+  push(a.map(()=>'default'),
+    `🟠 Start: [${a.join(', ')}].\n\nBubble Sort makes repeated passes. On each pass, adjacent pairs are compared. If left > right, they swap. The largest unsorted value "bubbles up" to its correct place.`,
+    `Array: [<span class="b-hl">${a.join(', ')}</span>]`, 0, n);
+
+  for(let pass=0; pass<n-1; pass++){
+    let swapped=false;
+    const boundary=sortedFrom-1; // last index we compare up to this pass
+
+    push(a.map((_,x)=>x>=sortedFrom?'sorted':'default'),
+      `🔁 Pass ${pass+1}: Compare adjacent pairs from index 0 to ${boundary-1}. The largest in [0..${boundary}] will bubble to index ${boundary}.`,
+      `Pass <span class="b-hl">${pass+1}</span>  ·  unsorted region: [0..${boundary}]`, pass+1, n);
+
+    for(let i=0; i<boundary; i++){
+      const cmpColors=a.map((_,x)=>
+        x===i||x===i+1 ? 'comparing' : x>=sortedFrom ? 'sorted' : 'default');
+
+      push(cmpColors,
+        `🔍 Compare a[${i}] = ${a[i]} and a[${i+1}] = ${a[i+1]}.\n${a[i]>a[i+1]
+          ? `${a[i]} > ${a[i+1]} → out of order! Swap them.`
+          : `${a[i]} ≤ ${a[i+1]} → already in order. No swap.`}`,
+        `a[<span class="b-hl">${i}</span>]=${a[i]}  vs  a[<span class="b-hl">${i+1}</span>]=${a[i+1]}  ${a[i]>a[i+1]?'→ <span class="b-hl">SWAP</span>':'→ ok'}`,
+        pass+1, n);
+
+      if(a[i]>a[i+1]){
+        swapped=true;
+        const va=a[i], vb=a[i+1];
+        [a[i],a[i+1]]=[a[i+1],a[i]];
+        const swpColors=a.map((_,x)=>
+          x===i||x===i+1 ? 'swapping' : x>=sortedFrom ? 'sorted' : 'default');
+        push(swpColors,
+          `🔄 Swapped! a[${i}] was ${va}, a[${i+1}] was ${vb}. Now a[${i}]=${a[i]}, a[${i+1}]=${a[i+1]}.\nArray: [${a.join(', ')}]`,
+          `Swapped <span class="b-hl">${va}</span> ↔ <span class="b-hl">${vb}</span>  →  [<span class="hl">${a.join(', ')}</span>]`,
+          pass+1, n);
+      }
+    }
+
+    sortedFrom--; // a[sortedFrom] is now in its final place
+    const endColors=a.map((_,x)=>x>=sortedFrom?'sorted':'default');
+    push(endColors,
+      `✅ End of pass ${pass+1}. a[${sortedFrom}] = ${a[sortedFrom]} is now in its final position.\n${!swapped?'\n⚡ No swaps occurred — array is already sorted! Early exit.':''}`,
+      `<span class="s-hl">a[${sortedFrom}] = ${a[sortedFrom]}</span> locked in place`,
+      pass+1, n);
+
+    if(!swapped) break; // early exit optimisation
+  }
+
+  steps.push({
+    array:[...a], colors:a.map(()=>'sorted'),
+    explanation:`🎉 Sorted: [${a.join(', ')}]`,
+    subarray:`<span class="s-hl">Sorted: [${a.join(', ')}]</span>`,
+    pass:n, passLen:n, pointers:null
+  });
+  return steps;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SELECTION SORT
+//  Find min in unsorted region, swap to front.
+//  Pointers: minIdx (current known minimum), j (scanner).
+// ═══════════════════════════════════════════════════════════════
+function genSelect(input){
+  const steps=[], a=[...input], n=a.length;
+
+  const push=(colors,expl,sub,pass,minIdx,scanIdx)=>steps.push({
+    array:[...a], colors, explanation:expl, subarray:sub,
+    pass, passLen:n, pointers:{minIdx, scanIdx}
+  });
+
+  push(a.map(()=>'default'),
+    `🔵 Start: [${a.join(', ')}].\n\nSelection Sort divides the array into sorted (left) and unsorted (right) regions. Each pass: find the minimum in the unsorted region, swap it to the front of that region.`,
+    `Array: [<span class="sel-hl">${a.join(', ')}</span>]`, 0, null, null);
+
+  for(let i=0; i<n-1; i++){
+    let minIdx=i;
+
+    // Announce the pass
+    push(a.map((_,x)=>x<i?'sorted':x===i?'minimum':'default'),
+      `🔁 Pass ${i+1}: Unsorted region = [${i}..${n-1}]. Start with a[${i}]=${a[i]} as the current minimum. Scan right for anything smaller.`,
+      `Pass <span class="sel-hl">${i+1}</span>  ·  start min = a[<span class="min-hl">${i}</span>] = <span class="min-hl">${a[i]}</span>`,
+      i+1, i, null);
+
+    for(let j=i+1; j<n; j++){
+      const scanColors=a.map((_,x)=>
+        x<i?'sorted':x===minIdx?'minimum':x===j?'comparing':'default');
+
+      push(scanColors,
+        `🔍 Compare a[${j}]=${a[j]} with current min a[${minIdx}]=${a[minIdx]}.\n${a[j]<a[minIdx]
+          ? `${a[j]} < ${a[minIdx]} → new minimum found at index ${j}!`
+          : `${a[j]} ≥ ${a[minIdx]} → current min stays at index ${minIdx}.`}`,
+        `j=<span class="sel-hl">${j}</span>  a[j]=<span class="sel-hl">${a[j]}</span>  ${a[j]<a[minIdx]?'<':'≥'}  min=<span class="min-hl">${a[minIdx]}</span>`,
+        i+1, minIdx, j);
+
+      if(a[j]<a[minIdx]){
+        minIdx=j;
+        const newMinColors=a.map((_,x)=>
+          x<i?'sorted':x===minIdx?'minimum':x===j?'comparing':'default');
+        push(newMinColors,
+          `📌 New minimum: a[${minIdx}]=${a[minIdx]}. Updated minIdx = ${minIdx}.`,
+          `New min → a[<span class="min-hl">${minIdx}</span>] = <span class="min-hl">${a[minIdx]}</span>`,
+          i+1, minIdx, j);
+      }
+    }
+
+    // Swap min to position i
+    if(minIdx!==i){
+      const vi=a[i], vmin=a[minIdx];
+      [a[i],a[minIdx]]=[a[minIdx],a[i]];
+      const swpColors=a.map((_,x)=>
+        x<i?'sorted':x===i||x===minIdx?'swapping':'default');
+      push(swpColors,
+        `🔄 Minimum of unsorted region is ${vmin} (index ${minIdx}). Swap a[${i}] (${vi}) ↔ a[${minIdx}] (${vmin}).\nArray: [${a.join(', ')}]`,
+        `Swapped a[<span class="min-hl">${i}</span>]=${vi} ↔ a[${minIdx}]=${vmin}`,
+        i+1, i, null);
+    } else {
+      push(a.map((_,x)=>x<i?'sorted':x===i?'minimum':'default'),
+        `✅ a[${i}]=${a[i]} is already the minimum — no swap needed.`,
+        `a[<span class="min-hl">${i}</span>] = <span class="min-hl">${a[i]}</span> already in place`,
+        i+1, i, null);
+    }
+
+    const doneColors=a.map((_,x)=>x<=i?'sorted':'default');
+    push(doneColors,
+      `✅ a[${i}] = ${a[i]} is now in its final sorted position.`,
+      `<span class="s-hl">a[0..${i}] = [${a.slice(0,i+1).join(', ')}]</span> sorted`,
+      i+1, null, null);
+  }
+
+  steps.push({
+    array:[...a], colors:a.map(()=>'sorted'),
+    explanation:`🎉 Sorted: [${a.join(', ')}]`,
+    subarray:`<span class="s-hl">Sorted: [${a.join(', ')}]</span>`,
+    pass:n, passLen:n, pointers:{minIdx:null,scanIdx:null}
+  });
+  return steps;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INSERTION SORT
+//  Pick key = a[i], shift elements > key rightward, insert key.
+//  Pointers: keyIdx (the key being inserted), j (shifting pointer).
+// ═══════════════════════════════════════════════════════════════
+function genInsert(input){
+  const steps=[], a=[...input], n=a.length;
+
+  const push=(colors,expl,sub,pass,keyIdx,shiftIdx)=>steps.push({
+    array:[...a], colors, explanation:expl, subarray:sub,
+    pass, passLen:n, pointers:{keyIdx, shiftIdx}
+  });
+
+  push(a.map((_,x)=>x===0?'sorted':'default'),
+    `🔴 Start: [${a.join(', ')}].\n\nInsertion Sort builds a sorted region on the left, one element at a time. a[0] is trivially sorted. Starting from i=1, we pick each element as the "key" and insert it into its correct position in the sorted region.`,
+    `a[0]=${a[0]} is trivially sorted. Starting from i=1.`, 0, null, null);
+
+  for(let i=1; i<n; i++){
+    const key=a[i];
+    let j=i-1;
+
+    push(a.map((_,x)=>x<i?'sorted':x===i?'key':'default'),
+      `🔑 Pass ${i}: Key = a[${i}] = ${key}. The sorted region is [0..${i-1}] = [${a.slice(0,i).join(', ')}].\nWe'll scan leftward and shift elements larger than ${key} one step right.`,
+      `Key: <span class="key-hl">${key}</span>  ·  sorted so far: [<span class="s-hl">${a.slice(0,i).join(', ')}</span>]`,
+      i, i, null);
+
+    while(j>=0 && a[j]>key){
+      // Show comparison
+      const cmpColors=a.map((_,x)=>
+        x<j?'sorted':x===j?'comparing':x===j+1?'key':'default');
+      push(cmpColors,
+        `🔍 Compare a[${j}]=${a[j]} with key=${key}.\n${a[j]}>key → shift a[${j}]=${a[j]} right to a[${j+1}].`,
+        `a[<span class="sel-hl">${j}</span>]=${a[j]} > key(<span class="key-hl">${key}</span>) → shift right`,
+        i, i, j);
+
+      a[j+1]=a[j]; // shift right
+      const shiftColors=a.map((_,x)=>
+        x<j?'sorted':x===j?'shifting':x===j+1?'shifting':'default');
+      push(shiftColors,
+        `➡️ Shifted a[${j}]=${a[j]} to a[${j+1}]. Position ${j} is now free.`,
+        `Shifted <span class="b-hl">${a[j]}</span> from [${j}] → [${j+1}]`,
+        i, i, j);
+
+      j--;
+    }
+
+    // Insert key
+    a[j+1]=key;
+    const insertColors=a.map((_,x)=>x<=i?'sorted':'default');
+    if(j+1===i){
+      push(insertColors,
+        `📌 key=${key} is already in the right place (no shifts needed). a[${i}] stays at index ${i}.`,
+        `Key <span class="key-hl">${key}</span> inserted at index ${j+1} — no shift needed`,
+        i, null, null);
+    } else {
+      push(insertColors,
+        `📌 Insert key=${key} at index ${j+1}.\nSorted region is now [0..${i}] = [${a.slice(0,i+1).join(', ')}].`,
+        `Key <span class="key-hl">${key}</span> inserted at index <span class="key-hl">${j+1}</span>  →  [<span class="s-hl">${a.slice(0,i+1).join(', ')}</span>]`,
+        i, null, null);
+    }
+  }
+
+  steps.push({
+    array:[...a], colors:a.map(()=>'sorted'),
+    explanation:`🎉 Sorted: [${a.join(', ')}]`,
+    subarray:`<span class="s-hl">Sorted: [${a.join(', ')}]</span>`,
+    pass:n, passLen:n, pointers:{keyIdx:null,shiftIdx:null}
+  });
+  return steps;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderBars(id, step, algo){
+  const c=document.getElementById(id); if(!c)return;
+  const {array, colors, pointers}=step;
+  const max=Math.max(...array,1);
+  c.innerHTML='';
+  const BAR_H=Math.max(90, c.parentElement.clientHeight-36);
+
+  array.forEach((val,i)=>{
+    const col=document.createElement('div'); col.className='bar-col';
+
+    // Always render ptr-zone (fixed height so bars don't shift)
+    const pz=document.createElement('div'); pz.className='ptr-zone';
+    const dot=document.createElement('div'); dot.className='ptr-dot';
+    const lbl=document.createElement('div'); lbl.className='ptr-lbl';
+
+    let showPtr=false;
+    if(pointers){
+      if(algo==='select'){
+        const {minIdx,scanIdx}=pointers;
+        if(minIdx===i){
+          showPtr=true;
+          dot.style.cssText=`background:var(--ptr-a);box-shadow:0 0 5px var(--ptr-a);`;
+          lbl.style.color='var(--ptr-a)'; lbl.textContent='min';
+        } else if(scanIdx===i){
+          showPtr=true;
+          dot.style.cssText=`background:var(--ptr-b);box-shadow:0 0 5px var(--ptr-b);`;
+          lbl.style.color='var(--ptr-b)'; lbl.textContent='j';
+        }
+      } else if(algo==='insert'){
+        const {keyIdx,shiftIdx}=pointers;
+        if(keyIdx===i){
+          showPtr=true;
+          dot.style.cssText=`background:var(--ptr-c);box-shadow:0 0 5px var(--ptr-c);`;
+          lbl.style.color='var(--ptr-c)'; lbl.textContent='key';
+        } else if(shiftIdx===i){
+          showPtr=true;
+          dot.style.cssText=`background:var(--ptr-b);box-shadow:0 0 5px var(--ptr-b);`;
+          lbl.style.color='var(--ptr-b)'; lbl.textContent='j';
+        }
+      }
+    }
+    if(!showPtr){
+      dot.classList.add('hidden');
+      lbl.classList.add('hidden'); lbl.textContent='-';
+    }
+    pz.appendChild(dot); pz.appendChild(lbl);
+
+    const num=document.createElement('div'); num.className='bar-num'; num.textContent=val;
+    const bar=document.createElement('div'); bar.className='bar '+(colors[i]||'default');
+    bar.style.height=Math.max(4,(val/max)*BAR_H)+'px';
+
+    col.appendChild(pz); col.appendChild(num); col.appendChild(bar);
+    c.appendChild(col);
+  });
+}
+
+function renderPassRow(rowId, step, color){
+  const row=document.getElementById(rowId); if(!row)return;
+  const n=step.passLen||0, pass=step.pass||0;
+  row.innerHTML='';
+
+  const label=document.createElement('span');
+  label.style.cssText=`font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--muted);margin-right:6px;`;
+  label.textContent='Pass:';
+  row.appendChild(label);
+
+  for(let p=1;p<=Math.max(n-1,pass);p++){
+    const pip=document.createElement('div'); pip.className='pass-pip';
+    pip.style.background=p<pass?color:p===pass?color+'bb':'var(--default)';
+    pip.title=`Pass ${p}`;
+    row.appendChild(pip);
+  }
+}
+
+function updateUI(algo){
+  const steps=stepsMap[algo], idx=idxMap[algo];
+  if(!steps||!steps.length)return;
+  const s=steps[idx];
+  const colorMap={bubble:'var(--bubble)',select:'var(--select)',insert:'var(--insert)'};
+
+  renderBars(`${algo}Bars`, s, algo);
+  renderPassRow(`${algo}PassRow`, s, colorMap[algo]);
+
+  document.getElementById(`${algo}Explanation`).innerHTML=s.explanation;
+  document.getElementById(`${algo}Subarray`).innerHTML=s.subarray;
+  document.getElementById(`${algo}Counter`).textContent=`Step ${idx+1} / ${steps.length}`;
+  document.getElementById(`${algo}Prev`).disabled=idx===0;
+  document.getElementById(`${algo}Next`).disabled=idx===steps.length-1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════════
+function step(algo,dir){
+  idxMap[algo]=Math.max(0,Math.min(stepsMap[algo].length-1,(idxMap[algo]||0)+dir));
+  updateUI(algo);
+}
+function resetAlgo(algo){stopPlay(algo);idxMap[algo]=0;updateUI(algo);}
+function togglePlay(algo){
+  if(timerMap[algo])stopPlay(algo);
+  else{
+    document.getElementById(`${algo}Play`).textContent='⏸ Pause';
+    timerMap[algo]=setInterval(()=>{
+      if((idxMap[algo]||0)>=stepsMap[algo].length-1){stopPlay(algo);return;}
+      step(algo,1);
+    },getDelay());
+  }
+}
+function stopPlay(algo){
+  if(timerMap[algo]){clearInterval(timerMap[algo]);delete timerMap[algo];
+    document.getElementById(`${algo}Play`).textContent='▶ Auto';}
+}
+
+function buildAll(){
+  ['bubble','select','insert'].forEach(k=>stopPlay(k));
+  stepsMap.bubble=genBubble(arr);
+  stepsMap.select=genSelect(arr);
+  stepsMap.insert=genInsert(arr);
+  idxMap.bubble=0; idxMap.select=0; idxMap.insert=0;
+  updateUI('bubble'); updateUI('select'); updateUI('insert');
+}
+buildAll();
+</script>
+
+</body>
+</html>

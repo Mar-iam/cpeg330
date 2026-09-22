@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Algorithms — Interactive Classroom Activity</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --surface2: #f0f0eb;
+    --border: #e0dfd8;
+    --border2: #ccccc4;
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #4f46e5;
+    --accent2: #6366f1;
+    --orange: #d97706;
+    --orange2: #b45309;
+    --green: #059669;
+    --green2: #047857;
+    --blue: #2563eb;
+    --blue2: #1d4ed8;
+    --purple: #7c3aed;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo {
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent2); }
+  .header-tag {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 9px;
+    border-radius: 20px;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .aside-section {
+    padding: 8px 16px 4px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all .15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active {
+    background: var(--surface2);
+    color: var(--accent2);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--border2); flex-shrink: 0;
+  }
+  .nav-btn.active .nav-dot { background: var(--accent); }
+  .aside-divider { height: 1px; background: var(--border); margin: 12px 16px; }
+
+  .graph-picker { padding: 8px 16px; }
+  .graph-picker-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .graph-btns { display: flex; gap: 6px; }
+  .graph-btn {
+    flex: 1; padding: 6px 0;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); font-family: 'Source Code Pro', monospace; font-size: 12px;
+    border-radius: var(--radius); cursor: pointer; transition: all .15s;
+  }
+  .graph-btn:hover { border-color: var(--border2); color: var(--text); }
+  .graph-btn.active { border-color: var(--accent); color: var(--accent2); background: #1a1a2e; }
+
+
+
+
+  /* ── Main ── */
+  main { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; overflow: hidden; }
+
+  .canvas-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+  }
+  canvas { display: block; width: 100%; height: 300px; background: #fafaf7; }
+
+  /* ── Controls bar ── */
+  .controls-bar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text2);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all .15s;
+  }
+  .ctrl-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  .ctrl-btn:disabled { opacity: .3; cursor: default; }
+  .ctrl-btn.primary {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff; font-weight: 500;
+  }
+  .ctrl-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .step-counter {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 11px; color: var(--text3); margin-left: auto;
+  }
+
+  /* ── Info panel ── */
+  .info-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+    min-height: 44px;
+  }
+  .info-panel strong { color: var(--text); font-weight: 500; }
+  .info-panel em { color: var(--accent2); font-style: normal; }
+
+  /* ── BFS queue ── */
+  .data-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: none;
+  }
+  .data-section.visible { display: block; }
+  .data-label {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 10px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 10px;
+  }
+  .queue-row {
+    display: flex; gap: 0;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface2);
+  }
+  .q-slot {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 8px 14px;
+    border-right: 1px solid var(--border);
+    min-width: 52px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 14px; font-weight: 500; color: var(--text);
+    transition: background .2s;
+  }
+  .q-slot:last-child { border-right: none; }
+  .q-slot.head { background: #fef3c7; color: var(--orange); }
+  .q-slot.incoming { background: #dbeafe; color: var(--blue); }
+  .q-tag { font-size: 9px; font-weight: 400; color: var(--text3); margin-top: 2px; font-family: 'Source Sans 3', sans-serif; }
+  .q-slot.head .q-tag { color: var(--orange); opacity: .7; }
+  .q-slot.incoming .q-tag { color: var(--blue); opacity: .7; }
+  .q-empty { font-family: 'Source Code Pro', monospace; font-size: 12px; color: var(--text3); padding: 10px 14px; }
+
+  .nbr-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .nbr-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+  .nbr-chip {
+    padding: 3px 10px; border-radius: 20px;
+    font-family: 'Source Code Pro', monospace; font-size: 12px;
+    border: 1px solid;
+  }
+  .nbr-chip.enq { border-color: var(--blue); color: var(--blue2); background: #dbeafe; }
+  .nbr-chip.skip { border-color: var(--border); color: var(--text3); background: var(--surface2); text-decoration: line-through; }
+
+  /* ── DFS call stack ── */
+  .call-stack { display: flex; flex-direction: column; gap: 4px; }
+  .call-frame {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-family: 'Source Code Pro', monospace;
+    font-size: 12px; color: var(--text3);
+    transition: all .2s;
+  }
+  .call-frame.top {
+    border-color: var(--accent);
+    background: #eef2ff;
+    color: var(--accent);
+  }
+
+  /* ── Dijkstra tables ── */
+  .dijk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  table { width: 100%; border-collapse: collapse; font-family: 'Source Code Pro', monospace; font-size: 12px; }
+  th {
+    text-align: center; padding: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3); font-weight: 500; font-size: 11px;
+  }
+  td {
+    text-align: center; padding: 6px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    transition: background .3s;
+  }
+  td.finalized { background: #d1fae5; color: var(--green2); }
+  td.updated { background: #fef3c7; color: var(--orange2); }
+  td.curr { background: #fef3c7; color: var(--orange); font-weight: 500; }
+
+  .pq-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .pq-chip {
+    padding: 3px 10px; border-radius: 20px;
+    font-family: 'Source Code Pro', monospace; font-size: 12px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text2);
+  }
+  .pq-chip.front { border-color: var(--orange); color: var(--orange2); background: #fef3c7; }
+
+  /* ── Shortest path ── */
+  .path-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: none;
+  }
+  .path-section.visible { display: block; }
+  .path-dest-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+  .path-dest-btn {
+    padding: 5px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface2);
+    font-family: 'Source Code Pro', monospace; font-size: 13px;
+    color: var(--text2); cursor: pointer; transition: all .15s;
+  }
+  .path-dest-btn:hover { border-color: var(--blue); color: var(--blue2); }
+  .path-dest-btn.sel { border-color: var(--blue); background: #dbeafe; color: var(--blue2); font-weight: 500; }
+  .path-result {
+    margin-top: 10px; font-size: 13px; color: var(--text2); line-height: 1.8;
+  }
+  .path-result strong { color: var(--text); }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ── Practice ── */
+
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+.graph-btn.active{background:#EEF2FF!important;color:#4338CA!important}
+@media(max-width:760px){.layout{grid-template-columns:1fr!important}aside{border-right:none!important;border-bottom:1px solid var(--border)!important}main{padding:16px!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Graph<span>Lab</span></div>
+  <div class="header-tag">Classroom Activity</div>
+  <div class="header-tag" style="margin-left:auto; color: var(--text2)">BFS · DFS · Dijkstra</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="aside-section">Algorithm</div>
+    <button class="nav-btn active" id="btn-bfs" onclick="setAlgo('bfs')">
+      <span class="nav-dot"></span>BFS
+    </button>
+    <button class="nav-btn" id="btn-dfs" onclick="setAlgo('dfs')">
+      <span class="nav-dot"></span>DFS (recursive)
+    </button>
+    <button class="nav-btn" id="btn-dijk" onclick="setAlgo('dijkstra')">
+      <span class="nav-dot"></span>Dijkstra
+    </button>
+    <button class="nav-btn" id="btn-cycle" onclick="setAlgo('cycle')">
+      <span class="nav-dot"></span>Cycle detection
+    </button>
+
+    <div class="aside-divider"></div>
+
+    <div class="graph-picker">
+      <div class="graph-picker-label">Graph</div>
+      <div class="graph-btns">
+        <button class="graph-btn active" id="btn-g1" onclick="loadGraph(1)">G1</button>
+        <button class="graph-btn" id="btn-g2" onclick="loadGraph(2)">G2</button>
+        <button class="graph-btn" id="btn-g3" onclick="loadGraph(3)">G3</button>
+        <button class="graph-btn" id="btn-g4" onclick="loadGraph(4)">G4</button>
+      </div>
+    </div>
+
+    <div class="aside-divider"></div>
+
+
+  </aside>
+
+  <main>
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="gc"></canvas>
+    </div>
+
+    <!-- Demo controls -->
+    <div class="controls-bar" id="demo-controls">
+      <button class="ctrl-btn" id="btn-prev" onclick="prevStep()" disabled>← Prev</button>
+      <button class="ctrl-btn primary" id="btn-next" onclick="nextStep()">Next →</button>
+      <button class="ctrl-btn" id="btn-auto" onclick="autoPlay()">▶ Auto</button>
+      <button class="ctrl-btn" onclick="reset()">Reset</button>
+      <span class="step-counter" id="step-ctr"></span>
+    </div>
+
+
+
+    <!-- Info -->
+    <div class="info-panel" id="info">Select an algorithm and press <em>Next</em>. Click any node first to set the start.</div>
+
+    <!-- BFS queue -->
+    <div class="data-section" id="bfs-sec">
+      <div class="data-label">Queue — front → back</div>
+      <div class="queue-row" id="bfs-queue-row"><div class="q-empty">Empty</div></div>
+      <div class="nbr-label" id="bfs-nbr-label"></div>
+      <div class="nbr-row" id="bfs-nbr-row"></div>
+      <div style="margin-top:12px;">
+        <div class="data-label">Predecessor array</div>
+        <table style="width:100%;border-collapse:collapse;font-family:'Source Code Pro',monospace;font-size:12px;">
+          <thead><tr id="bfs-pred-head"></tr></thead>
+          <tbody><tr id="bfs-pred-row"></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BFS shortest path -->
+    <div class="path-section" id="bfs-path-sec">
+      <div class="data-label">Shortest path (fewest hops) — select destination</div>
+      <div class="path-dest-btns" id="bfs-path-dest-btns"></div>
+      <div class="path-result" id="bfs-path-result"></div>
+    </div>
+
+    <!-- DFS call stack -->
+    <div class="data-section" id="dfs-sec">
+      <div class="data-label">Call stack — top = active</div>
+      <div class="call-stack" id="call-stack"></div>
+    </div>
+
+    <!-- Cycle detection panel -->
+    <div class="data-section" id="cycle-sec">
+      <div class="data-label">Recursion stack (currently active frames)</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;" id="cycle-recstack"></div>
+      <div class="data-label" style="margin-top:2px;">Cycle nodes found so far</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;" id="cycle-visited-chips"></div>
+      <div id="cycle-alert" style="display:none;margin-top:12px;padding:10px 12px;border-radius:var(--radius);border:1.5px solid #fca5a5;background:#fff1f2;">
+        <div style="font-size:11px;font-weight:600;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">⚠ Back edge — cycle detected</div>
+        <div style="font-size:13px;color:#7f1d1d;line-height:1.6;" id="cycle-alert-info"></div>
+      </div>
+      <div id="cycle-done-box" style="display:none;margin-top:12px;padding:10px 12px;border-radius:var(--radius);"></div>
+    </div>
+
+    <!-- Dijkstra tables -->
+    <div class="data-section" id="dijk-sec">
+      <div class="dijk-grid">
+        <div>
+          <div class="data-label">Distance array</div>
+          <table><thead><tr id="dijk-head"></tr></thead><tbody><tr id="dijk-drow"></tr></tbody></table>
+        </div>
+        <div>
+          <div class="data-label">Predecessor array</div>
+          <table><thead><tr id="pred-head"></tr></thead><tbody><tr id="pred-row"></tr></tbody></table>
+        </div>
+      </div>
+      <div class="data-label" style="margin-top:12px">Priority queue</div>
+      <div class="pq-chips" id="pq-chips"></div>
+    </div>
+
+    <!-- Shortest path -->
+    <div class="path-section" id="path-sec">
+      <div class="data-label">Shortest path — select destination</div>
+      <div class="path-dest-btns" id="path-dest-btns"></div>
+      <div class="path-result" id="path-result"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#2563eb"></div>Start</div>
+      <div class="leg"><div class="leg-dot" style="background:#d97706"></div>Current</div>
+      <div class="leg"><div class="leg-dot" style="background:#059669"></div>Visited</div>
+      <div class="leg"><div class="leg-dot" style="background:#9ca3af"></div>Unvisited</div>
+      <div class="leg" id="leg-next" style="display:none"><div class="leg-dot" style="background:#7c3aed"></div>Next to visit</div>
+    <div class="leg" id="leg-cycle" style="display:none"><div class="leg-dot" style="background:#dc2626"></div>Cycle node</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const C = document.getElementById('gc');
+const ctx = C.getContext('2d');
+let W, H;
+
+const GRAPHS = {
+  1: {
+    nodes: [{id:'A',x:.13,y:.28},{id:'B',x:.38,y:.12},{id:'C',x:.65,y:.22},{id:'D',x:.22,y:.68},{id:'E',x:.52,y:.62},{id:'F',x:.80,y:.68}],
+    edges: [['A','B',4],['A','D',2],['B','C',3],['B','E',5],['C','F',1],['D','E',6],['E','F',3],['D','B',7]]
+  },
+  2: {
+    nodes: [{id:'S',x:.1,y:.45},{id:'A',x:.32,y:.15},{id:'B',x:.32,y:.78},{id:'C',x:.60,y:.15},{id:'D',x:.60,y:.78},{id:'T',x:.88,y:.45}],
+    edges: [['S','A',2],['S','B',4],['A','C',3],['A','D',8],['B','D',1],['C','T',5],['D','T',2],['C','D',6]]
+  },
+  3: {
+    nodes: [{id:'1',x:.5,y:.1},{id:'2',x:.2,y:.42},{id:'3',x:.78,y:.42},{id:'4',x:.1,y:.82},{id:'5',x:.38,y:.82},{id:'6',x:.65,y:.82},{id:'7',x:.9,y:.65}],
+    edges: [['1','2',1],['1','3',2],['2','4',4],['2','5',3],['3','6',2],['3','7',5],['4','5',1],['5','6',2],['6','7',3]]
+  },
+  4: {
+    nodes: [
+      {id:'A',x:.50,y:.08},
+      {id:'B',x:.22,y:.28},{id:'C',x:.78,y:.28},
+      {id:'D',x:.08,y:.55},{id:'E',x:.38,y:.52},{id:'F',x:.62,y:.52},{id:'G',x:.90,y:.55},
+      {id:'H',x:.20,y:.82},{id:'I',x:.50,y:.82},{id:'J',x:.78,y:.82}
+    ],
+    edges: [
+      ['A','B',4],['A','C',2],
+      ['B','D',5],['B','E',3],['C','F',4],['C','G',6],
+      ['D','H',2],['E','H',4],['E','I',6],['E','F',3],
+      ['F','I',2],['F','G',5],['G','J',3],
+      ['H','I',5],['I','J',4],['D','E',7],['B','C',8]
+    ]
+  }
+};
+
+let graph, algo = 'bfs', startNode;
+let allSteps = [], curIdx = -1, isDone = false;
+let autoTimer = null, selectedDest = null;
+
+function nbrs(id) {
+  const res = [];
+  graph.edges.forEach(([a,b,w]) => {
+    if (a===id) res.push({id:b,w});
+    if (b===id) res.push({id:a,w});
+  });
+  return res.sort((a,b) => a.id.localeCompare(b.id));
+}
+
+function hideAll() {
+  ['bfs-sec','dfs-sec','cycle-sec','dijk-sec','path-sec','bfs-path-sec'].forEach(id => document.getElementById(id).classList.remove('visible'));
+  document.getElementById('leg-next').style.display = 'none';
+}
+
+function loadGraph(id) {
+  ['btn-g1','btn-g2','btn-g3','btn-g4'].forEach((b,i) => document.getElementById(b).classList.toggle('active', i+1===id));
+  graph = JSON.parse(JSON.stringify(GRAPHS[id]));
+  startNode = graph.nodes[0].id;
+  reset();
+}
+
+function setAlgo(a) {
+  algo = a;
+  [['bfs','btn-bfs'],['dfs','btn-dfs'],['dijkstra','btn-dijk'],['cycle','btn-cycle']].forEach(([x,id]) => document.getElementById(id).classList.toggle('active', x===a));
+
+  reset();
+}
+
+
+// ── Build steps ──
+function buildBFS() {
+  const steps = [], vis = new Set(), q = [startNode];
+  const pred = {}; graph.nodes.forEach(n => { pred[n.id] = null; });
+  steps.push({vis:[],cur:null,q:[startNode],added:[startNode],pnbrs:[],snbrs:[],pred:{...pred},newPred:[],
+    info:`BFS starts at <strong>${startNode}</strong>. Enqueue it.`,done:false});
+  while (q.length) {
+    const node = q.shift();
+    if (vis.has(node)) continue;
+    vis.add(node);
+    const an = nbrs(node);
+    const toAdd = an.filter(n=>!vis.has(n.id)&&!q.includes(n.id)).map(n=>n.id);
+    const skip = an.filter(n=>vis.has(n.id)||q.includes(n.id)).map(n=>n.id);
+    const newPred = [];
+    toAdd.forEach(n => { q.push(n); if (pred[n]===null && n!==startNode) { pred[n]=node; newPred.push(n); } });
+    steps.push({vis:[...vis],cur:node,q:[...q],added:toAdd,pnbrs:toAdd,snbrs:skip,pred:{...pred},newPred,
+      info:`Dequeue <strong>${node}</strong> — mark visited. Enqueue: [${toAdd.join(', ')||'none'}].`,
+      done:q.length===0&&vis.size===graph.nodes.length});
+  }
+  steps[steps.length-1].info = `<strong>BFS complete!</strong> Visit order: <strong>${[...vis].join(' → ')}</strong>. Select a destination to trace the shortest path.`;
+  steps[steps.length-1].done = true;
+  return steps;
+}
+
+function buildDFS() {
+  const steps = [], vis = new Set();
+  function rec(node, stack) {
+    vis.add(node);
+    const s = [...stack, node];
+    const unvis = nbrs(node).filter(n=>!vis.has(n.id));
+    const nxt = unvis.length ? unvis[0].id : null;
+    steps.push({vis:[...vis],cur:node,stack:[...s],nextNode:nxt,cycleNodes:[],backEdge:null,
+      info: nxt
+        ? `<strong>dfs(${node})</strong> — visited. Next: call <strong>dfs(${nxt})</strong>.`
+        : `<strong>dfs(${node})</strong> — visited, no unvisited neighbors. Returning.`,
+      done:false});
+    for (const {id} of unvis) {
+      if (!vis.has(id)) {
+        rec(id, s);
+        const rem = nbrs(node).filter(n=>!vis.has(n.id));
+        const nxt2 = rem.length ? rem[0].id : null;
+        if (rem.length > 0 || s.length > 1) {
+          steps.push({vis:[...vis],cur:node,stack:[...s],nextNode:nxt2,cycleNodes:[],backEdge:null,
+            info: nxt2
+              ? `Returned to <strong>dfs(${node})</strong>. Next: call <strong>dfs(${nxt2})</strong>.`
+              : `Returned to <strong>dfs(${node})</strong>. No more unvisited neighbors — returning.`,
+            done:false});
+        }
+      }
+    }
+  }
+  rec(startNode, []);
+  steps.push({vis:[...vis],cur:null,stack:[],nextNode:null,cycleNodes:[],backEdge:null,
+    info:`<strong>DFS complete!</strong> Visit order: <strong>${[...vis].join(' → ')}</strong>`,done:true});
+  return steps;
+}
+
+function buildCycleDetection() {
+  // DFS-based cycle detection.
+  // A back edge (neighbor already on the recursion stack, not the direct parent)
+  // indicates a cycle. We track the parent EDGE (not node) to correctly handle
+  // undirected graphs where every edge appears in both directions.
+  const steps = [], vis = new Set(), recStack = new Set();
+  const detectedCycles = [], allCycleNodes = new Set();
+  const reportedEdges = new Set();
+
+  steps.push({
+    vis:[], recStack:[], cur:null, nextNode:null,
+    cycleNodes:[], backEdge:null, edge:null,
+    info:`Cycle detection via DFS from <strong>${startNode}</strong>. A <em>back edge</em> — a neighbor already on the recursion stack — signals a cycle. Click any node first to set the start.`,
+    done:false
+  });
+
+  function rec(node, stack, parentEdge) {
+    vis.add(node); recStack.add(node);
+    const s = [...stack, node];
+    const allNbr = nbrs(node);
+    const unvis = allNbr.filter(n => !vis.has(n.id));
+    const nxt = unvis.length ? unvis[0].id : null;
+
+    // Detect back edges: visited neighbor on rec stack, not the edge we came from
+    let cycleInfo = null;
+    for (const nb of allNbr) {
+      const edgeKey = [node, nb.id].sort().join('-');
+      if (recStack.has(nb.id) && edgeKey !== parentEdge && !reportedEdges.has(edgeKey)) {
+        reportedEdges.add(edgeKey);
+        const idx = s.indexOf(nb.id);
+        const cyclePath = idx >= 0 ? s.slice(idx) : [nb.id, node];
+        cyclePath.forEach(n => allCycleNodes.add(n));
+        const info = {from:node, to:nb.id, path:[...cyclePath]};
+        detectedCycles.push(info);
+        if (!cycleInfo) cycleInfo = info;
+      }
+    }
+
+    steps.push({
+      vis:[...vis], recStack:[...recStack], cur:node, nextNode:nxt,
+      cycleNodes:[...allCycleNodes], backEdge:cycleInfo, edge:null,
+      info: cycleInfo
+        ? `At <strong>${node}</strong> — back edge to <strong>${cycleInfo.to}</strong> (already on recursion stack). Cycle: <strong>${cycleInfo.path.join(' → ')} → ${cycleInfo.to}</strong>`
+        : nxt
+          ? `Visiting <strong>${node}</strong> — push to recursion stack. Next: <strong>${nxt}</strong>.`
+          : `Visiting <strong>${node}</strong> — no unvisited neighbors. Popping from stack.`,
+      done:false
+    });
+
+    for (const {id} of unvis) {
+      if (!vis.has(id)) {
+        const edgeKey = [node, id].sort().join('-');
+        rec(id, s, edgeKey);
+        const rem = nbrs(node).filter(n => !vis.has(n.id));
+        const nxt2 = rem.length ? rem[0].id : null;
+        if (rem.length > 0 || s.length > 1) {
+          steps.push({
+            vis:[...vis], recStack:[...recStack], cur:node, nextNode:nxt2,
+            cycleNodes:[...allCycleNodes], backEdge:null, edge:null,
+            info: nxt2
+              ? `Returned to <strong>${node}</strong>. Next unvisited neighbor: <strong>${nxt2}</strong>.`
+              : `Returned to <strong>${node}</strong>. No more neighbors — popping from stack.`,
+            done:false
+          });
+        }
+      }
+    }
+    recStack.delete(node);
+  }
+
+  rec(startNode, [], null);
+
+  // Continue from any unvisited nodes (disconnected components)
+  graph.nodes.forEach(n => {
+    if (!vis.has(n.id)) rec(n.id, [], null);
+  });
+
+  const hasCycle = detectedCycles.length > 0;
+  steps.push({
+    vis:[...vis], recStack:[], cur:null, nextNode:null,
+    cycleNodes:[...allCycleNodes], backEdge:null, edge:null,
+    info: hasCycle
+      ? `<strong>Done.</strong> ${detectedCycles.length} back edge(s) found — graph has cycle(s). Note: DFS from a single start may not find every possible cycle path — only back edges encountered along this traversal are shown.`
+      : `<strong>Done.</strong> No back edges found — this graph is acyclic.`,
+    done:true, hasCycle, cycles:detectedCycles
+  });
+  return steps;
+}
+
+function buildDijkstra() {
+  const steps = [], dist = {}, pred = {}, fin = new Set();
+  graph.nodes.forEach(n => { dist[n.id] = n.id===startNode?0:Infinity; pred[n.id] = null; });
+  const pq = [startNode];
+  steps.push({dist:{...dist},pred:{...pred},fin:[],cur:null,pq:[...pq],upd:[],
+    info:`Dijkstra from <strong>${startNode}</strong>. dist[${startNode}]=0, all others=∞.`,done:false});
+  while (pq.length) {
+    pq.sort((a,b) => dist[a]-dist[b]);
+    const node = pq.shift();
+    if (fin.has(node)) continue;
+    fin.add(node);
+    const upd = [];
+    nbrs(node).forEach(({id,w}) => {
+      const nd = dist[node]+w;
+      if (nd < dist[id]) { dist[id]=nd; pred[id]=node; upd.push(id);
+        if (!fin.has(id)&&!pq.includes(id)) pq.push(id); }
+    });
+    const relaxed = upd.map(id=>`${id}→${dist[id]}`);
+    steps.push({dist:{...dist},pred:{...pred},fin:[...fin],cur:node,pq:[...pq],upd,
+      info:`Finalize <strong>${node}</strong> (dist=${dist[node]}). Relaxed: [${relaxed.join(', ')||'none'}].`,
+      done:fin.size===graph.nodes.length&&pq.length===0});
+  }
+  steps[steps.length-1].done = true;
+  steps[steps.length-1].info = `<strong>Dijkstra complete!</strong> Select a destination to show shortest path.`;
+  return steps;
+}
+
+function reset() {
+  clearInterval(autoTimer); autoTimer = null;
+  const ab = document.getElementById('btn-auto'); if (ab) ab.textContent = '▶ Auto';
+  allSteps = []; curIdx = -1; isDone = false; selectedDest = null;
+  hideAll();
+  document.getElementById('step-ctr').textContent = '';
+  document.getElementById('bfs-nbr-label').textContent = '';
+  document.getElementById('bfs-nbr-row').innerHTML = '';
+  document.getElementById('path-dest-btns').innerHTML = '';
+  document.getElementById('path-result').innerHTML = '';
+  document.getElementById('bfs-path-dest-btns').innerHTML = '';
+  document.getElementById('bfs-path-result').innerHTML = '';
+  updateBtns();
+  const nm = algo==='bfs'?'BFS':algo==='dfs'?'DFS (recursive)':algo==='cycle'?'Cycle Detection':'Dijkstra';
+  updateInfo(`<strong>${nm}.</strong> Press <em>Next</em> to begin. Click any node first to set the start.`);
+  if (algo==='dijkstra') {
+    document.getElementById('dijk-sec').classList.add('visible');
+    const nodes = graph.nodes.map(n=>n.id);
+    const h = nodes.map(id=>`<th>${id}</th>`).join('');
+    document.getElementById('dijk-head').innerHTML = h;
+    document.getElementById('pred-head').innerHTML = h;
+    const drow = nodes.map(id=>`<td>${id===startNode?0:'∞'}</td>`).join('');
+    document.getElementById('dijk-drow').innerHTML = drow;
+    document.getElementById('pred-row').innerHTML = nodes.map(()=>`<td>—</td>`).join('');
+    document.getElementById('pq-chips').innerHTML = `<span class="pq-chip front">${startNode}(0)</span>`;
+  }
+  draw(null);
+}
+
+function applyStep(idx) {
+  const s = allSteps[idx];
+  if (algo==='bfs') applyBFS(s);
+  else if (algo==='dfs') applyDFS(s);
+  else if (algo==='cycle') applyCycle(s);
+  else applyDijk(s);
+  isDone = s.done;
+  updateInfo(s.info);
+  document.getElementById('step-ctr').textContent = `${idx+1} / ${allSteps.length}`;
+  updateBtns();
+  draw(s);
+}
+
+function applyBFS(s) {
+  document.getElementById('bfs-sec').classList.add('visible');
+  const row = document.getElementById('bfs-queue-row');
+  row.innerHTML = s.q.length === 0
+    ? '<div class="q-empty">Empty</div>'
+    : s.q.map((n,i) => {
+        const isNew = s.added&&s.added.includes(n), isHead = i===0;
+        const cls = isNew?'incoming':isHead?'head':'';
+        const tag = isNew?'just added':isHead?'next out':'';
+        return `<div class="q-slot ${cls}">${n}${tag?`<div class="q-tag">${tag}</div>`:''}</div>`;
+      }).join('');
+  const lbl = document.getElementById('bfs-nbr-label');
+  const nr = document.getElementById('bfs-nbr-row');
+  if (s.cur) {
+    lbl.textContent = `Neighbors of ${s.cur}:`;
+    const all = [...s.pnbrs,...s.snbrs];
+    nr.innerHTML = all.map(n => {
+      const sk = s.snbrs.includes(n);
+      return `<span class="nbr-chip ${sk?'skip':'enq'}">${n}${sk?' (seen)':' → enqueue'}</span>`;
+    }).join('');
+  } else { lbl.textContent=''; nr.innerHTML=''; }
+  // Predecessor table
+  if (s.pred) {
+    const nodes = graph.nodes.map(n=>n.id);
+    document.getElementById('bfs-pred-head').innerHTML = nodes.map(id=>`<th style="text-align:center;padding:4px 6px;border:1px solid var(--border);background:var(--surface2);font-weight:500;color:var(--text3);font-size:11px;">${id}</th>`).join('');
+    document.getElementById('bfs-pred-row').innerHTML = nodes.map(id => {
+      const isNew = s.newPred && s.newPred.includes(id);
+      const isVis = s.vis && s.vis.includes(id);
+      const cls = isNew ? 'updated' : isVis ? 'finalized' : '';
+      return `<td class="${cls}" style="text-align:center;padding:4px 6px;border:1px solid var(--border);font-size:12px;">${s.pred[id]||'—'}</td>`;
+    }).join('');
+  }
+  // Show path section when done
+  if (s.done) showBFSPathSection(s);
+}
+
+function showBFSPathSection(s) {
+  const sec = document.getElementById('bfs-path-sec');
+  sec.classList.add('visible');
+  const nodes = graph.nodes.filter(n=>n.id!==startNode);
+  document.getElementById('bfs-path-dest-btns').innerHTML = nodes.map(n=>
+    `<button class="path-dest-btn${selectedDest===n.id?' sel':''}" onclick="selectBFSDest('${n.id}')">${n.id}</button>`
+  ).join('');
+  if (selectedDest) renderBFSPath(s, selectedDest);
+}
+
+function selectBFSDest(id) {
+  selectedDest = id;
+  const s = allSteps[curIdx];
+  if (s&&s.done) showBFSPathSection(s);
+  draw(s);
+}
+
+function renderBFSPath(s, dest) {
+  const res = document.getElementById('bfs-path-result');
+  if (!s.pred[dest] && dest !== startNode) { res.innerHTML=`No path to <strong>${dest}</strong>.`; return; }
+  let node=dest, path=[dest];
+  while (s.pred[node]) { node=s.pred[node]; path.unshift(node); }
+  const hops = path.length - 1;
+  res.innerHTML=`<strong>${startNode} → ${dest}:</strong> ${path.join(' → ')} &nbsp;·&nbsp; hops = <strong>${hops}</strong>`;
+}
+
+function applyDFS(s) {
+  document.getElementById('leg-next').style.display = s.nextNode ? 'flex' : 'none';
+  document.getElementById('leg-cycle').style.display = 'none';
+  const sec = document.getElementById('dfs-sec');
+  if (s.stack&&s.stack.length) {
+    sec.classList.add('visible');
+    const frames = [...s.stack].reverse();
+    document.getElementById('call-stack').innerHTML =
+      frames.map((f,i)=>`<div class="call-frame${i===0?' top':''}">${i===0?'▶ ':'  '}dfs(${f})</div>`).join('');
+  } else sec.classList.remove('visible');
+}
+
+function applyCycle(s) {
+  document.getElementById('leg-next').style.display = s.nextNode ? 'flex' : 'none';
+  document.getElementById('leg-cycle').style.display = (s.cycleNodes&&s.cycleNodes.length) ? 'flex' : 'none';
+  const sec = document.getElementById('cycle-sec');
+  sec.classList.add('visible');
+
+  // Recursion stack chips
+  const rs = s.recStack || [];
+  document.getElementById('cycle-recstack').innerHTML = rs.length
+    ? rs.map((n,i) => `<span style="padding:3px 10px;border-radius:10px;font-family:'Source Code Pro',monospace;font-size:12px;border:1px solid ${i===rs.length-1?'#d97706':'#e5e7eb'};background:${i===rs.length-1?'#fef3c7':'var(--surface2)'};color:${i===rs.length-1?'#92400e':'var(--text2)'};">${n}${i===rs.length-1?' ◀':''}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text3);">empty</span>';
+
+  // Cycle nodes so far
+  const cycleNodes = s.cycleNodes || [];
+  document.getElementById('cycle-visited-chips').innerHTML = cycleNodes.length
+    ? cycleNodes.map(n => `<span style="padding:3px 10px;border-radius:10px;font-family:'Source Code Pro',monospace;font-size:12px;border:1px solid #fca5a5;background:#fff1f2;color:#dc2626;">${n}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text3);">none yet</span>';
+
+  // Back edge alert
+  const alertEl = document.getElementById('cycle-alert');
+  if (s.backEdge) {
+    alertEl.style.display = 'block';
+    document.getElementById('cycle-alert-info').innerHTML =
+      `Back edge: <strong>${s.backEdge.from} → ${s.backEdge.to}</strong> — <strong>${s.backEdge.to}</strong> is already on the recursion stack.<br>` +
+      `Cycle: <strong>${s.backEdge.path.join(' → ')} → ${s.backEdge.to}</strong>`;
+  } else {
+    alertEl.style.display = 'none';
+  }
+
+  // Done summary
+  const doneBox = document.getElementById('cycle-done-box');
+  if (s.done) {
+    if (s.hasCycle) {
+      doneBox.style.display = 'block';
+      doneBox.style.border = '1.5px solid #fca5a5';
+      doneBox.style.background = '#fff1f2';
+      doneBox.innerHTML = '<div style="font-size:11px;font-weight:600;color:#dc2626;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Back edges found</div>' +
+        s.cycles.map(c=>`<div style="font-size:13px;color:#7f1d1d;margin-bottom:3px;"><strong>${c.path.join(' → ')} → ${c.to}</strong></div>`).join('') +
+        '<div style="font-size:12px;color:#991b1b;margin-top:8px;font-style:italic;">Note: DFS from one start node may not expose every cycle path — only back edges along this traversal are shown. Try a different start node to find more.</div>';
+    } else {
+      doneBox.style.display = 'block';
+      doneBox.style.border = '1.5px solid #86efac';
+      doneBox.style.background = '#f0fdf4';
+      doneBox.innerHTML = '<div style="font-size:13px;color:#14532d;font-weight:500;">✓ No back edges found from this start — graph appears acyclic from here.</div>';
+    }
+  } else {
+    doneBox.style.display = 'none';
+  }
+}
+
+function applyDijk(s) {
+  document.getElementById('dijk-sec').classList.add('visible');
+  const nodes = graph.nodes.map(n=>n.id);
+  const h = nodes.map(id=>`<th>${id}</th>`).join('');
+  document.getElementById('dijk-head').innerHTML = h;
+  document.getElementById('pred-head').innerHTML = h;
+  document.getElementById('dijk-drow').innerHTML = nodes.map(id => {
+    let cls='';
+    if (id===s.cur) cls='curr';
+    else if (s.upd&&s.upd.includes(id)) cls='updated';
+    else if (s.fin&&s.fin.includes(id)) cls='finalized';
+    const v = s.dist[id]===Infinity?'∞':s.dist[id];
+    return `<td class="${cls}">${v}</td>`;
+  }).join('');
+  document.getElementById('pred-row').innerHTML = nodes.map(id => {
+    let cls = s.fin&&s.fin.includes(id)?'finalized':s.upd&&s.upd.includes(id)?'updated':'';
+    return `<td class="${cls}">${s.pred[id]||'—'}</td>`;
+  }).join('');
+  const sorted = [...s.pq].sort((a,b)=>s.dist[a]-s.dist[b]);
+  document.getElementById('pq-chips').innerHTML = sorted.map((n,i)=>
+    `<span class="pq-chip${i===0?' front':''}">${n}(${s.dist[n]===Infinity?'∞':s.dist[n]})</span>`).join('');
+  if (s.done) showPathSection(s);
+}
+
+function showPathSection(s) {
+  const sec = document.getElementById('path-sec');
+  sec.classList.add('visible');
+  const nodes = graph.nodes.filter(n=>n.id!==startNode);
+  document.getElementById('path-dest-btns').innerHTML = nodes.map(n=>
+    `<button class="path-dest-btn${selectedDest===n.id?' sel':''}" onclick="selectDest('${n.id}')">${n.id}</button>`
+  ).join('');
+  if (selectedDest) renderPath(s, selectedDest);
+}
+
+function selectDest(id) {
+  selectedDest = id;
+  const s = allSteps[curIdx];
+  if (s&&s.done) showPathSection(s);
+  draw(s);
+}
+
+function renderPath(s, dest) {
+  const res = document.getElementById('path-result');
+  if (s.dist[dest]===Infinity) { res.innerHTML=`No path to <strong>${dest}</strong>.`; return; }
+  let node=dest, path=[dest];
+  while (s.pred[node]) { node=s.pred[node]; path.unshift(node); }
+  res.innerHTML=`<strong>${startNode} → ${dest}:</strong> ${path.join(' → ')} &nbsp;·&nbsp; cost = <strong>${s.dist[dest]}</strong>`;
+}
+
+function getSP(s, dest) {
+  if (!dest||!s||!s.pred||s.dist[dest]===Infinity) return {nodes:new Set(),edges:new Set()};
+  let node=dest; const pn=new Set([dest]),pe=new Set();
+  while (s.pred[node]) { const p=s.pred[node]; pe.add(`${p}-${node}`); pe.add(`${node}-${p}`); pn.add(p); node=p; }
+  return {nodes:pn,edges:pe};
+}
+
+function getBFSorDijkSP(predMap, dest) {
+  if (!dest||!predMap) return {nodes:new Set(),edges:new Set()};
+  let node=dest; const pn=new Set([dest]),pe=new Set();
+  const seen=new Set();
+  while (predMap[node] && !seen.has(node)) {
+    seen.add(node);
+    const p=predMap[node]; pe.add(`${p}-${node}`); pe.add(`${node}-${p}`); pn.add(p); node=p;
+  }
+  return {nodes:pn,edges:pe};
+}
+
+function nextStep() {
+  if (isDone) return;
+  if (!allSteps.length) {
+    if (algo==='bfs') allSteps=buildBFS();
+    else if (algo==='dfs') allSteps=buildDFS();
+    else if (algo==='cycle') allSteps=buildCycleDetection();
+    else allSteps=buildDijkstra();
+  }
+  if (curIdx < allSteps.length-1) { curIdx++; applyStep(curIdx); }
+}
+
+function prevStep() {
+  if (curIdx<=0) { reset(); return; }
+  isDone=false; curIdx--; applyStep(curIdx);
+}
+
+function updateBtns() {
+  document.getElementById('btn-prev').disabled = curIdx < 0;
+  document.getElementById('btn-next').disabled = isDone;
+}
+
+function autoPlay() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer=null; document.getElementById('btn-auto').textContent='▶ Auto'; return; }
+  document.getElementById('btn-auto').textContent='⏸ Pause';
+  autoTimer = setInterval(() => { if (isDone) { clearInterval(autoTimer); autoTimer=null; document.getElementById('btn-auto').textContent='▶ Auto'; return; } nextStep(); }, 1100);
+}
+
+
+function updateInfo(html) { document.getElementById('info').innerHTML = html; }
+
+// ── Draw ──
+function getR() { return Math.min(W,H)*0.078; }
+
+function draw(s) {
+  if (!graph) return;
+  const rect = C.parentElement.getBoundingClientRect();
+  W = rect.width; H = 300;
+  const DPR = devicePixelRatio||1;
+  C.width = W*DPR; C.height = H*DPR;
+  C.style.width = W+'px'; C.style.height = H+'px';
+  ctx.scale(DPR, DPR);
+  ctx.clearRect(0,0,W,H);
+  const r = getR();
+  const showW = algo==='dijkstra';
+
+  let spNodes=new Set(), spEdges=new Set(), spMode=false;
+  if (s&&s.done&&selectedDest&&(algo==='dijkstra'||algo==='bfs')) {
+    const predMap = algo==='dijkstra' ? s.pred : s.pred;
+    if (predMap) { const sp=getBFSorDijkSP(predMap,selectedDest); spNodes=sp.nodes; spEdges=sp.edges; spMode=true; }
+  }
+
+  const visited = s ? (algo==='dijkstra'?s.fin||[]:s.vis||[]) : [];
+  const isCycleAlgo = algo==='cycle';
+  const current = s ? s.cur : null;
+  const nextNode = s&&algo==='dfs' ? s.nextNode : null;
+  const pendNbrs = s&&algo==='bfs' ? s.pnbrs||[] : [];
+  const cycleNodes = s&&algo==='dfs' ? (s.cycleNodes||[]) : [];
+  const backEdgePair = s&&algo==='dfs'&&s.backEdge ? s.backEdge : null;
+
+  // edges
+  graph.edges.forEach(([a,b,w]) => {
+    const na=graph.nodes.find(n=>n.id===a), nb=graph.nodes.find(n=>n.id===b);
+    const ax=na.x*W, ay=na.y*H, bx=nb.x*W, by=nb.y*H;
+    const inSP = spEdges.has(`${a}-${b}`);
+    const bothV = visited.includes(a)&&visited.includes(b);
+    let sc, lw;
+    if (spMode) { sc=inSP?'#2563eb':'#e5e5e0'; lw=inSP?2.5:1; }
+    else { sc=bothV?'#05966944':'#d0d0c8'; lw=bothV?2:1; }
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+    ctx.strokeStyle=sc; ctx.lineWidth=lw; ctx.stroke();
+    if (showW) {
+      const mx=(ax+bx)/2, my=(ay+by)/2;
+      ctx.save(); ctx.font=`500 ${Math.round(r*0.42)}px 'Source Code Pro', monospace`;
+      ctx.fillStyle=spMode&&!inSP?'#d0d0c8':'#aaa9a0';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(w,mx,my-10); ctx.restore();
+    }
+  });
+
+  // Back edge (cycle) — red dashed line between the two cycle nodes
+  if (s && s.backEdge) {
+    const na = graph.nodes.find(n=>n.id===s.backEdge.from);
+    const nb = graph.nodes.find(n=>n.id===s.backEdge.to);
+    if (na && nb) {
+      ctx.beginPath(); ctx.moveTo(na.x*W,na.y*H); ctx.lineTo(nb.x*W,nb.y*H);
+      ctx.setLineDash([6,4]); ctx.strokeStyle='#dc2626'; ctx.lineWidth=2.5; ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // BFS dashed pending
+  pendNbrs.forEach(id => {
+    if (visited.includes(id)) return;
+    const nd=graph.nodes.find(n=>n.id===id); if(!nd) return;
+    ctx.beginPath(); ctx.arc(nd.x*W,nd.y*H,r+6,0,Math.PI*2);
+    ctx.setLineDash([4,3]); ctx.strokeStyle='#2563eb'; ctx.lineWidth=1.5; ctx.stroke(); ctx.setLineDash([]);
+  });
+
+  // nodes
+  graph.nodes.forEach(n => {
+    const x=n.x*W, y=n.y*H;
+    const isV=visited.includes(n.id), isCur=n.id===current, isNxt=n.id===nextNode;
+    const inSP=spNodes.has(n.id), fade=spMode&&!inSP;
+    const isCycleNode = cycleNodes.includes(n.id);
+    const onRecStack = isCycleAlgo && s && s.recStack && s.recStack.includes(n.id);
+    let col;
+    if (fade) col='#e8e8e3';
+    else if (isCycleAlgo && s && s.backEdge && (n.id===s.backEdge.from||n.id===s.backEdge.to)) col='#dc2626';
+    else if (isCycleAlgo && isCycleNode) col='#f87171';
+    else if (isCycleAlgo && onRecStack) col='#d97706';
+    else if (isCur) col='#d97706';
+    else if (isNxt) col='#7c3aed';
+    else if (isV) col='#059669';
+    else if (n.id===startNode) col='#2563eb';
+    else col='#9ca3af';
+
+    if (isCur&&!fade) { ctx.beginPath();ctx.arc(x,y,r+7,0,Math.PI*2);ctx.fillStyle='#d9770615';ctx.fill(); }
+    if (isNxt&&!fade) { ctx.beginPath();ctx.arc(x,y,r+6,0,Math.PI*2);ctx.setLineDash([4,3]);ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]); }
+    if (spMode&&inSP&&!isCur) { ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.stroke(); }
+
+    // node circle
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+
+    // subtle inner ring
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+
+    // label
+    ctx.font=`600 ${Math.round(r*0.58)}px 'Source Code Pro', monospace`;
+    ctx.fillStyle=fade?'#bbb':'#fff';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n.id,x,y);
+
+    // dist label for dijkstra
+    if (showW&&s&&s.dist&&s.dist[n.id]!==undefined) {
+      ctx.font=`${Math.round(r*0.4)}px 'Source Code Pro', monospace`;
+      ctx.fillStyle=fade?'#ccc':'#888880';
+      ctx.fillText(s.dist[n.id]===Infinity?'∞':s.dist[n.id], x, y+r+11);
+    }
+
+
+  });
+}
+
+C.addEventListener('click', e => {
+  if (!graph) return;
+  const rect=C.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(W/rect.width);
+  const y=(e.clientY-rect.top)*(H/rect.height);
+  const r=getR();
+  const n=graph.nodes.find(nd=>Math.hypot(x-nd.x*W,y-nd.y*H)<r+5);
+  if (!n) return;
+  if (curIdx<0) { startNode=n.id; reset(); }
+});
+
+window.addEventListener('resize', () => draw(curIdx>=0?allSteps[curIdx]:null));
+loadGraph(1);
+</script>
+</body>
+</html>

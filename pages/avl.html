@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AVL Tree Rotation Game</title>
+<style>
+:root{--bg:#fafaf8;--surface:#fff;--surface2:#f4f3ef;--border:#e8e6e0;--border2:#d4d0c8;--text:#1c1a16;--muted:#7a7568;--accent:#2d6a4f;--accent-l:#e8f4ee;--accent-b:#a8d5ba;--indigo:#3730a3;--indigo-l:#eef2ff;--indigo-b:#c7d2fe;--red:#991b1b;--red-l:#fef2f2;--red-b:#fca5a5;--amber:#92400e;--amber-l:#fffbeb;--amber-b:#f59e0b;--purple:#6b21a8;--purple-l:#faf5ff;--purple-b:#d8b4fe;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+.layout{display:grid;grid-template-columns:1fr 560px;min-height:100vh}
+.left{padding:2.5rem 2rem 2rem 2.5rem;display:flex;flex-direction:column;gap:1.5rem}
+.game-header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}
+.header-left h1{font-family:'Source Sans 3',serif;font-size:24px;font-weight:600;line-height:1.15;margin-bottom:4px}
+.header-left p{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em}
+.header-right{display:flex;gap:1.5rem}
+.stat{text-align:right}
+.stat-n{font-family:'Source Code Pro',monospace;font-size:24px;font-weight:700;line-height:1}
+.stat-l{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+.ref-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.9rem 1.1rem}
+.ref-title{font-family:'Source Code Pro',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.ref-lines{display:flex;flex-direction:column;gap:5px}
+.ref-line{font-family:'Source Code Pro',monospace;font-size:12px;line-height:1.5;color:var(--text);display:flex;align-items:baseline;flex-wrap:wrap}
+.kw{color:var(--indigo);font-weight:700}
+.arrow{color:var(--muted);margin:0 6px}
+.rot-ll{color:#059669;font-weight:700}
+.rot-lr{color:#0891b2;font-weight:700}
+.rot-rr{color:#d97706;font-weight:700}
+.rot-rl{color:#dc2626;font-weight:700}
+.ref-sep{height:1px;background:var(--border);margin:3px 0}
+/* level sections */
+.level-section{display:flex;flex-direction:column;gap:6px}
+.level-label{font-family:'Source Code Pro',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px;display:inline-block;margin-bottom:2px}
+.lv1 .level-label{background:var(--indigo-l);color:var(--indigo)}
+.lv2 .level-label{background:var(--amber-l);color:var(--amber)}
+.lv3 .level-label{background:var(--accent-l);color:var(--accent)}
+.tile-row{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.tile{aspect-ratio:1;border-radius:10px;background:var(--surface);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s ease;user-select:none}
+.tile:hover:not(.active-tile){background:var(--surface2);transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,0,0,.07);border-color:var(--border2)}
+.tile.active-tile{border-color:var(--accent);background:var(--accent-l);box-shadow:0 0 0 3px rgba(45,106,79,.18);transform:scale(1.06)}
+.tile.done{background:var(--bg);border-color:var(--accent-b);opacity:.65}
+.tile.done:hover{opacity:1;border-color:var(--accent);background:var(--accent-l)}
+.lv1 .tile:not(.done):not(.active-tile){border-color:var(--indigo-b)}
+.lv2 .tile:not(.done):not(.active-tile){border-color:var(--amber-b)}
+.lv3 .tile:not(.done):not(.active-tile){border-color:var(--accent-b)}
+.tile-num{font-family:'Source Code Pro',monospace;font-size:16px;font-weight:700;color:var(--text)}
+.tile.active-tile .tile-num,.tile.done .tile-num{color:var(--accent)}
+.tile-check{font-size:9px;color:var(--accent);font-weight:700;position:absolute;top:3px;right:5px}
+.progress-wrap{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
+.right{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:100vh}
+.panel-idle{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;padding:2.5rem;text-align:center}
+.idle-icon{width:64px;height:64px;border-radius:50%;background:var(--accent-l);border:1.5px solid var(--accent-b);display:flex;align-items:center;justify-content:center;font-size:28px}
+.idle-title{font-family:'Source Sans 3',serif;font-size:20px;font-weight:600}
+.idle-sub{font-size:13px;color:var(--muted);line-height:1.75;max-width:300px}
+.idle-hint{font-family:'Source Code Pro',monospace;font-size:11px;color:var(--accent);background:var(--accent-l);border:1px solid var(--accent-b);padding:5px 14px;border-radius:20px}
+.panel-question{flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.q-header{padding:.9rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:2}
+.q-badges{display:flex;align-items:center;gap:7px}
+.q-num{font-family:'Source Code Pro',monospace;font-size:12px;font-weight:700;padding:3px 11px;border-radius:20px;background:var(--accent-l);color:var(--accent);border:1px solid var(--accent-b)}
+.q-level{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+.q-level.lv1{background:var(--indigo-l);color:var(--indigo);border:1px solid var(--indigo-b)}
+.q-level.lv2{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
+.q-level.lv3{background:var(--accent-l);color:var(--accent);border:1px solid var(--accent-b)}
+.done-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--accent-l);color:var(--accent);border:1px solid var(--accent-b)}
+.btn-x{font-size:12px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-family:'Source Sans 3',sans-serif;transition:background .15s}
+.btn-x:hover{background:var(--surface2)}
+.q-body{padding:1.4rem 1.5rem;flex:1;display:flex;flex-direction:column;gap:1.1rem}
+.q-prompt{font-family:'Source Sans 3',serif;font-size:17px;line-height:1.75;color:var(--text);padding:12px 15px;background:var(--surface2);border-radius:10px;border-left:3px solid var(--accent)}
+.q-prompt strong{font-weight:600}
+.tree-lbl{font-family:'Source Code Pro',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.tree-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.9rem;display:flex;justify-content:center}
+.tree-box.after{background:var(--accent-l);border-color:var(--accent-b)}
+.steps{display:flex;flex-direction:column;gap:7px}
+.step-wrap{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s}
+.step-wrap.open{border-color:var(--accent-b)}
+.step-btn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:none;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;color:var(--muted);transition:background .15s;text-align:left}
+.step-btn:hover{background:var(--border)}
+.step-wrap.open .step-btn{background:var(--accent-l);color:var(--accent)}
+.step-chev{font-size:10px;transition:transform .2s}
+.step-wrap.open .step-chev{transform:rotate(180deg)}
+.step-body{display:none;padding:12px 14px;border-top:1px solid var(--border);flex-direction:column;gap:9px}
+.step-wrap.open .step-body{display:flex}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{display:inline-flex;align-items:center;background:var(--accent-l);border:1px solid var(--accent-b);color:var(--accent);font-family:'Source Code Pro',monospace;font-size:12px;font-weight:700;padding:4px 12px;border-radius:7px}
+.chip.red{background:var(--red-l);border-color:var(--red-b);color:var(--red)}
+.chip.purple{background:var(--purple-l);border-color:var(--purple-b);color:var(--purple)}
+.answer-exp{font-size:13px;line-height:1.85;color:var(--muted)}
+.answer-exp strong{color:var(--text)}
+.alt-box{background:var(--indigo-l);border:1px solid var(--indigo-b);border-radius:8px;padding:9px 12px}
+.alt-label{font-family:'Source Code Pro',monospace;font-size:10px;font-weight:700;color:var(--indigo);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.alt-exp{font-size:12px;line-height:1.8;color:var(--muted)}
+.q-footer{padding:.9rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:7px;background:var(--surface)}
+.btn-done{flex:1;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-done:hover{opacity:.88}
+.btn-undone{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--accent-b);background:var(--accent-l);color:var(--accent);font-family:'Source Sans 3',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-undone:hover{opacity:.75}
+.e{stroke:#d1cfc8;stroke-width:1.5;fill:none}
+.nc{fill:#f4f3ef;stroke:#b5b0a4;stroke-width:1.5}
+.nt{font-family:'Source Code Pro',monospace;font-size:12px;font-weight:700;fill:#1c1a16;text-anchor:middle;dominant-baseline:central}
+.nn .nc{fill:#eef2ff;stroke:#818cf8}.nn .nt{fill:#3730a3}
+.ni .nc{fill:#fef2f2;stroke:#f87171}.ni .nt{fill:#991b1b}
+.nd .nc{fill:#fef9ee;stroke:#f59e0b;stroke-dasharray:4 2}.nd .nt{fill:#92400e}
+.np .nc{fill:#e8f4ee;stroke:#34d399;stroke-width:2}.np .nt{fill:#065f46}
+.nr .nc{fill:#faf5ff;stroke:#c084fc;stroke-width:2}.nr .nt{fill:#6b21a8}
+.bf-t{font-family:'Source Code Pro',monospace;font-size:10px;dominant-baseline:central;text-anchor:middle}
+.bf-bad{fill:#dc2626;font-weight:700}.bf-ok{fill:#4338ca}
+.node-tag{font-family:'Source Code Pro',monospace;font-size:9px;text-anchor:middle}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+:root,:root[data-theme]{--bg:#F6F6F3!important;--surface:#FFFFFF!important;--surface2:#F0F0EC!important;--border:#E3E3DD!important;--border2:#D2D2CA!important;--text:#1B1B1F!important;--muted:#6B6B73!important;}
+html{color-scheme:light}
+body{background:var(--bg)!important;color:var(--text);-webkit-font-smoothing:antialiased}
+button:focus-visible,input:focus-visible{outline:2px solid #274C77;outline-offset:2px}
+header h1,.header-left h1,.idle-title,.logo{font-family:'Source Serif 4',Georgia,serif!important;font-weight:700!important;letter-spacing:-.01em!important}
+@media(max-width:900px){.layout{grid-template-columns:1fr!important}.right{border-left:none!important;border-top:1px solid var(--border)!important;min-height:60vh!important}.left{padding:1.5rem 1rem!important}}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="left">
+  <div class="game-header">
+    <div class="header-left">
+      <h1>AVL Tree Rotation Game</h1>
+      <p>BF = left &minus; right</p>
+    </div>
+    <div class="header-right">
+      <div class="stat"><div class="stat-n" id="sDone">0</div><div class="stat-l">Done</div></div>
+      <div class="stat"><div class="stat-n" id="sLeft">21</div><div class="stat-l">Left</div></div>
+    </div>
+  </div>
+
+  <div class="ref-box">
+    <div class="ref-title">Rotation cases</div>
+    <div class="ref-lines">
+      <div class="ref-line"><span class="kw">if</span>&nbsp;BF(node)==+2&nbsp;<span class="kw">and</span>&nbsp;BF(left child)&ge;0<span class="arrow">&rarr;</span><span class="rot-ll">LL &nbsp;(Right rotation)</span></div>
+      <div class="ref-sep"></div>
+      <div class="ref-line"><span class="kw">if</span>&nbsp;BF(node)==+2&nbsp;<span class="kw">and</span>&nbsp;BF(left child)&le;0<span class="arrow">&rarr;</span><span class="rot-lr">LR &nbsp;(Left then Right)</span></div>
+      <div class="ref-sep"></div>
+      <div class="ref-line"><span class="kw">if</span>&nbsp;BF(node)==&minus;2&nbsp;<span class="kw">and</span>&nbsp;BF(right child)&lt;0<span class="arrow">&rarr;</span><span class="rot-rr">RR &nbsp;(Left rotation)</span></div>
+      <div class="ref-sep"></div>
+      <div class="ref-line"><span class="kw">if</span>&nbsp;BF(node)==&minus;2&nbsp;<span class="kw">and</span>&nbsp;BF(right child)&gt;0<span class="arrow">&rarr;</span><span class="rot-rl">RL &nbsp;(Right then Left)</span></div>
+    </div>
+  </div>
+
+  <div class="level-section lv1">
+    <div class="level-label">Level 1 — Balance Factors</div>
+    <div class="tile-row" id="row1"></div>
+  </div>
+  <div class="level-section lv2">
+    <div class="level-label">Level 2 — Rotation Case</div>
+    <div class="tile-row" id="row2"></div>
+  </div>
+  <div class="level-section lv3">
+    <div class="level-label">Level 3 — Result</div>
+    <div class="tile-row" id="row3"></div>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-fill" id="pFill" style="width:0%"></div></div>
+</div>
+
+<div class="right" id="rightPanel">
+  <div class="panel-idle">
+    <div class="idle-icon">&#127795;</div>
+    <div class="idle-title">Waiting for a student</div>
+    <div class="idle-sub">Students pick a number from each level. Click the tile to reveal their question.</div>
+    <div class="idle-hint">BF = left height &minus; right height</div>
+  </div>
+</div>
+</div>
+
+<script>
+function dT(nodes,edges,W,H){
+  var s='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="max-width:'+W+'px;display:block;margin:auto">';
+  edges.forEach(function(e){
+    var na=nodes.find(function(n){return n.id===e[0];}),nb=nodes.find(function(n){return n.id===e[1];});
+    if(na&&nb)s+='<line class="e" x1="'+na.x+'" y1="'+na.y+'" x2="'+nb.x+'" y2="'+nb.y+'"/>';
+  });
+  nodes.forEach(function(n){
+    var cls=n.t==='new'?'nn':n.t==='imb'?'ni':n.t==='del'?'nd':n.t==='pro'?'np':n.t==='red'?'nr':'';
+    s+='<g class="'+cls+'"><circle class="nc" cx="'+n.x+'" cy="'+n.y+'" r="20"/><text class="nt" x="'+n.x+'" y="'+n.y+'">'+n.v+'</text></g>';
+    if(n.bf!==undefined&&n.bf!==null){var bad=Math.abs(n.bf)>=2;s+='<text class="bf-t '+(bad?'bf-bad':'bf-ok')+'" x="'+(n.x+27)+'" y="'+(n.y-10)+'">'+(n.bf>0?'+':'')+n.bf+'</text>';}
+    if(n.t==='new')s+='<text class="node-tag" style="fill:#6366f1" x="'+n.x+'" y="'+(n.y+34)+'">inserted</text>';
+    if(n.t==='del')s+='<text class="node-tag" style="fill:#d97706" x="'+n.x+'" y="'+(n.y+34)+'">deleted</text>';
+    if(n.t==='red')s+='<text class="node-tag" style="fill:#9333ea" x="'+n.x+'" y="'+(n.y+34)+'">?</text>';
+  });
+  return s+'</svg>';
+}
+
+// Each tree has 3 questions: [L1_bf, L2_rot, L3_result]
+// L1: BF question — show tree after insert/delete, ask BFs bottom-up
+// L2: Rotation — same tree with BFs labeled, ask rotation case
+// L3: Result — same tree with BFs labeled, rotation stated, ask what happens + show after-tree
+
+var TREES=[
+
+// ── T1: LL insertion ─────────────────────────────────────────────────────────
+// root=40, L=20(L=15,R=25), R=50. Insert 10 left of 15.
+// Violation at 40, BF(20)=+1 → LL
+// After LL on 40: 20 rises, 40 becomes 20.R, 25 moves to 40.L
+(function(){
+  var bN=[{id:'A',v:40,x:200,y:45},{id:'B',v:20,x:100,y:130},{id:'C',v:50,x:300,y:130},{id:'D',v:15,x:50,y:215},{id:'E',v:25,x:153,y:215},{id:'F',v:10,x:20,y:300,t:'new'}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['D','F']];
+  var bNbf=[{id:'A',v:40,x:200,y:45,bf:2,t:'imb'},{id:'B',v:20,x:100,y:130,bf:1},{id:'C',v:50,x:300,y:130},{id:'D',v:15,x:50,y:215,bf:1},{id:'E',v:25,x:153,y:215},{id:'F',v:10,x:20,y:300,t:'new'}];
+  var aN=[{id:'A',v:20,x:180,y:45,t:'pro'},{id:'B',v:15,x:85,y:130},{id:'C',v:40,x:280,y:130,t:'pro'},{id:'D',v:10,x:40,y:215},{id:'E',v:25,x:235,y:215,t:'red'},{id:'F',v:50,x:325,y:215}];
+  var aE=[['A','B'],['A','C'],['B','D'],['C','E'],['C','F']];
+  return [
+    {lvl:1,prompt:'Insert <strong>10</strong>. What is the BF of nodes <strong>10</strong>, <strong>15</strong>, <strong>20</strong>, and <strong>40</strong>?',
+     bN:bN,bE:bE,W:400,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(10)=0',r:false},{t:'BF(15)=+1',r:false},{t:'BF(20)=+1',r:false},{t:'BF(40)=+2',r:true}],
+       exp:'<strong>BF(10):</strong> leaf node, left=empty h=&minus;1, right=empty h=&minus;1. BF=0.<br><strong>BF(15):</strong> left=10 h=0, right=empty h=&minus;1. BF=0&minus;(&minus;1)=<strong>+1</strong>.<br><strong>BF(20):</strong> left subtree 15&rarr;10 h=1, right=25 h=0. BF=1&minus;0=<strong>+1</strong>.<br><strong>BF(40):</strong> left subtree rooted at 20, h=2. Right=50, h=0. BF=2&minus;0=<strong>+2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(15): path 15&rarr;10=1 edge &rarr; h=1, right empty &rarr; h=0, BF=+1. BF(20): left path 20&rarr;15&rarr;10=2 edges &rarr; h=2, right path 20&rarr;25=1 edge &rarr; h=1, BF=+1. BF(40): left=3 edges, right=1 edge, BF=+2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>40</strong>?',
+     bN:bNbf,bE:bE,W:400,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'LL &mdash; Single Right Rotation on node 40',r:false}],
+       exp:'BF(40)=+2 <span class="kw">and</span> BF(left child 20)=+1 &gt; 0 &rarr; <strong>LL</strong>. Apply a single right rotation on node 40.'}]},
+    {lvl:3,prompt:'LL rotation on node <strong>40</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:400,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'20 rises to replace 40',r:false}],
+       exp:'Right rotation on 40: node <strong>20 is promoted</strong> to take 40\'s place. Node 40 drops to become 20\'s right child. Node 25 (was 20\'s right child) moves to become 40\'s left child. Node 50 stays as 40\'s right child.',
+       tree:{N:aN,E:aE,W:400,H:255}}]}
+  ];
+})(),
+
+// ── T2: RR insertion ─────────────────────────────────────────────────────────
+// root=30, L=20, R=50(L=40,R=60). Insert 70 right of 60.
+// Violation at 30, BF(50)=−1 → RR
+// After RR on 30: 50 rises, 30 becomes 50.L, 40 stays 50.L... wait:
+// Left rotate 30: 50 rises. 30 becomes 50.L. 40 (was 50.L) moves to 30.R
+(function(){
+  var bN=[{id:'A',v:30,x:175,y:45},{id:'B',v:20,x:80,y:130},{id:'C',v:50,x:272,y:130},{id:'D',v:40,x:222,y:215},{id:'E',v:60,x:325,y:215},{id:'F',v:70,x:350,y:300,t:'new'}];
+  var bE=[['A','B'],['A','C'],['C','D'],['C','E'],['E','F']];
+  var bNbf=[{id:'A',v:30,x:175,y:45,bf:-2,t:'imb'},{id:'B',v:20,x:80,y:130},{id:'C',v:50,x:272,y:130,bf:-1},{id:'D',v:40,x:222,y:215},{id:'E',v:60,x:325,y:215,bf:-1},{id:'F',v:70,x:350,y:300,t:'new'}];
+  var aN=[{id:'A',v:50,x:195,y:45,t:'pro'},{id:'B',v:30,x:95,y:130,t:'pro'},{id:'C',v:60,x:298,y:130},{id:'D',v:20,x:45,y:215},{id:'E',v:40,x:148,y:215,t:'red'},{id:'F',v:70,x:348,y:215}];
+  var aE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F']];
+  return [
+    {lvl:1,prompt:'Insert <strong>70</strong>. What is the BF of nodes <strong>70</strong>, <strong>60</strong>, <strong>50</strong>, and <strong>30</strong>?',
+     bN:bN,bE:bE,W:430,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(70)=0',r:false},{t:'BF(60)=&minus;1',r:false},{t:'BF(50)=&minus;1',r:false},{t:'BF(30)=&minus;2',r:true}],
+       exp:'<strong>BF(70):</strong> leaf, BF=0.<br><strong>BF(60):</strong> left=empty h=&minus;1, right=70 h=0. BF=&minus;1&minus;0=<strong>&minus;1</strong>.<br><strong>BF(50):</strong> left=40 h=0, right subtree 60&rarr;70 h=1. BF=0&minus;1=<strong>&minus;1</strong>.<br><strong>BF(30):</strong> left=20 h=0, right subtree rooted at 50, h=2. BF=0&minus;2=<strong>&minus;2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(60): right path 60&rarr;70=1 edge &rarr; h=1, left empty &rarr; h=0, BF=&minus;1. BF(50): left path=1 edge, right path 50&rarr;60&rarr;70=2 edges, BF=1&minus;2=&minus;1. BF(30): left=1 edge, right=3 edges, BF=1&minus;3=&minus;2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>30</strong>?',
+     bN:bNbf,bE:bE,W:430,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'RR &mdash; Single Left Rotation on node 30',r:false}],
+       exp:'BF(30)=&minus;2 <span class="kw">and</span> BF(right child 50)=&minus;1 &lt; 0 &rarr; <strong>RR</strong>. Apply a single left rotation on node 30.'}]},
+    {lvl:3,prompt:'RR rotation on node <strong>30</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:430,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'50 rises to replace 30',r:false}],
+       exp:'Left rotation on 30: node <strong>50 is promoted</strong> to become the new root. Node 30 drops to become 50\'s left child. Node 40 (was 50\'s left child) moves to become 30\'s right child. Node 20 stays as 30\'s left child.',
+       tree:{N:aN,E:aE,W:430,H:255}}]}
+  ];
+})(),
+
+// ── T3: LR insertion ─────────────────────────────────────────────────────────
+// root=35, L=20(L=15,R=30), R=40. Insert 25 left of 30.
+// Violation at 35, BF(20)=−1 → LR
+// After LR on 35: 25 rises as root, 20 becomes 25.L, 35 becomes 25.R
+(function(){
+  var bN=[{id:'A',v:35,x:185,y:45},{id:'B',v:20,x:90,y:130},{id:'C',v:40,x:285,y:130},{id:'D',v:15,x:40,y:215},{id:'E',v:30,x:143,y:215},{id:'F',v:25,x:115,y:300,t:'new'}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['E','F']];
+  var bNbf=[{id:'A',v:35,x:185,y:45,bf:2,t:'imb'},{id:'B',v:20,x:90,y:130,bf:-1},{id:'C',v:40,x:285,y:130},{id:'D',v:15,x:40,y:215},{id:'E',v:30,x:143,y:215,bf:1},{id:'F',v:25,x:115,y:300,t:'new'}];
+  var aN=[{id:'A',v:25,x:185,y:45,t:'pro'},{id:'B',v:20,x:90,y:130,t:'pro'},{id:'C',v:35,x:285,y:130,t:'pro'},{id:'D',v:15,x:40,y:215},{id:'E',v:40,x:335,y:215}];
+  var aE=[['A','B'],['A','C'],['B','D'],['C','E']];
+  return [
+    {lvl:1,prompt:'Insert <strong>25</strong>. What is the BF of nodes <strong>25</strong>, <strong>30</strong>, <strong>20</strong>, and <strong>35</strong>?',
+     bN:bN,bE:bE,W:410,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(25)=0',r:false},{t:'BF(30)=+1',r:false},{t:'BF(20)=&minus;1',r:false},{t:'BF(35)=+2',r:true}],
+       exp:'<strong>BF(25):</strong> leaf, BF=0.<br><strong>BF(30):</strong> left=25 h=0, right=empty h=&minus;1. BF=0&minus;(&minus;1)=<strong>+1</strong>.<br><strong>BF(20):</strong> left=15 h=0, right subtree 30&rarr;25 h=1. BF=0&minus;1=<strong>&minus;1</strong>.<br><strong>BF(35):</strong> left subtree rooted at 20, h=2. Right=40 h=0. BF=2&minus;0... wait: h(20)=max(h(15),h(30&rarr;25))+1=max(0,1)+1=2. BF(35)=2&minus;0=<strong>+2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(30): left path 30&rarr;25=1 edge &rarr; h=1, right empty &rarr; h=0, BF=+1. BF(20): left path=1 edge, right path 20&rarr;30&rarr;25=2 edges, BF=1&minus;2=&minus;1. BF(35): left path=3 edges, right path=1 edge, BF=3&minus;1=+2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>35</strong>?',
+     bN:bNbf,bE:bE,W:410,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'LR &mdash; Left-Right Double Rotation on node 35',r:false}],
+       exp:'BF(35)=+2 <span class="kw">and</span> BF(left child 20)=&minus;1 &lt; 0 &rarr; <strong>LR</strong>. Left rotation on 20 first, then right rotation on 35.'}]},
+    {lvl:3,prompt:'LR rotation on node <strong>35</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:410,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'25 rises to become new root',r:false}],
+       exp:'LR: first left-rotate on 20 (25 rises, 20 becomes 25\'s left child), then right-rotate on 35 (25 replaces 35, 35 becomes 25\'s right child). Node <strong>25 is promoted</strong> to new root. 20 (with 15) goes left. 35 (with 40) goes right.',
+       tree:{N:aN,E:aE,W:410,H:255}}]}
+  ];
+})(),
+
+// ── T4: RL insertion ─────────────────────────────────────────────────────────
+// root=40, L=20(L=10,R=30), R=55(R=60). Insert 58 left of 60.
+// Violation at 55, BF(60)=+1 → RL
+// After RL on 55: 58 rises, 55 becomes 58.L, 60 becomes 58.R
+(function(){
+  var bN=[{id:'A',v:40,x:200,y:45},{id:'B',v:20,x:95,y:130},{id:'C',v:55,x:305,y:130},{id:'D',v:10,x:45,y:215},{id:'E',v:30,x:148,y:215},{id:'F',v:60,x:355,y:215},{id:'G',v:58,x:325,y:300,t:'new'}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['F','G']];
+  var bNbf=[{id:'A',v:40,x:200,y:45},{id:'B',v:20,x:95,y:130},{id:'C',v:55,x:305,y:130,bf:-2,t:'imb'},{id:'D',v:10,x:45,y:215},{id:'E',v:30,x:148,y:215},{id:'F',v:60,x:355,y:215,bf:1},{id:'G',v:58,x:325,y:300,t:'new'}];
+  var aN=[{id:'A',v:40,x:200,y:45},{id:'B',v:20,x:95,y:130},{id:'C',v:58,x:305,y:130,t:'pro'},{id:'D',v:10,x:45,y:215},{id:'E',v:30,x:148,y:215},{id:'F',v:55,x:255,y:215,t:'pro'},{id:'G',v:60,x:355,y:215,t:'pro'}];
+  var aE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['C','G']];
+  return [
+    {lvl:1,prompt:'Delete <strong>25</strong>. What is the BF of nodes <strong>20</strong>, <strong>55</strong>, <strong>45</strong>, and <strong>40</strong>?',
+     bN:[{id:'A',v:40,x:200,y:45},{id:'B',v:20,x:95,y:130},{id:'C',v:55,x:305,y:130},{id:'D',v:25,x:148,y:215,t:'del'},{id:'E',v:45,x:258,y:215},{id:'F',v:60,x:358,y:215},{id:'G',v:42,x:228,y:300}],
+     bE:[['A','B'],['A','C'],['B','D'],['C','E'],['C','F'],['E','G']],W:435,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(20)=0',r:false},{t:'BF(45)=+1',r:false},{t:'BF(55)=+1',r:false},{t:'BF(40)=&minus;2',r:true}],
+       exp:'After deleting 25, node 20 has no children.<br><br><strong>BF(20):</strong> no children. BF=0.<br><strong>BF(45):</strong> left=42 h=0, right=empty h=&minus;1. BF=0&minus;(&minus;1)=<strong>+1</strong>.<br><strong>BF(55):</strong> left subtree 45&rarr;42 h=1, right=60 h=0. BF=1&minus;0=<strong>+1</strong>.<br><strong>BF(40):</strong> left=20 h=0, right subtree rooted at 55, h=2. BF=0&minus;2=<strong>&minus;2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(45): left path 45&rarr;42=1 edge, right empty=0, BF=+1. BF(55): left path 55&rarr;45&rarr;42=2 edges, right path=1 edge, BF=+1. BF(40): left=1 edge, right path 40&rarr;55&rarr;45&rarr;42=3 edges, BF=1&minus;3=&minus;2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>55</strong>?',
+     bN:bNbf,bE:bE,W:435,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'RL &mdash; Right-Left Double Rotation on node 55',r:false}],
+       exp:'BF(55)=&minus;2 <span class="kw">and</span> BF(right child 60)=+1 &gt; 0 &rarr; <strong>RL</strong>. Right rotation on 60 first, then left rotation on 55.'}]},
+    {lvl:3,prompt:'RL rotation on node <strong>55</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:435,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'58 rises to replace 55',r:false}],
+       exp:'RL: first right-rotate on 60 (58 rises, 60 becomes 58\'s right child), then left-rotate on 55 (58 replaces 55, 55 becomes 58\'s left child). Node <strong>58 is promoted</strong> to become right child of 40. 55 goes left of 58, 60 goes right of 58.',
+       tree:{N:aN,E:aE,W:435,H:255}}]}
+  ];
+})(),
+
+// ── T5: LL deletion ──────────────────────────────────────────────────────────
+// root=40, L=25(L=15(L=10),R=30), R=60(L=50,R=70). Delete 50 and 70.
+// Violation at 40, BF(25)=+1 → LL
+// After LL on 40: 25 rises, 40 becomes 25.R, 30 moves to 40.L
+(function(){
+  var bN=[{id:'A',v:40,x:205,y:45},{id:'B',v:25,x:100,y:130},{id:'C',v:60,x:310,y:130},{id:'D',v:15,x:48,y:215},{id:'E',v:30,x:155,y:215},{id:'F',v:50,x:258,y:215,t:'del'},{id:'G',v:70,x:363,y:215,t:'del'},{id:'H',v:10,x:18,y:300}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['C','G'],['D','H']];
+  var bNbf=[{id:'A',v:40,x:205,y:45,bf:2,t:'imb'},{id:'B',v:25,x:100,y:130,bf:1},{id:'C',v:60,x:310,y:130},{id:'D',v:15,x:48,y:215,bf:1},{id:'E',v:30,x:155,y:215},{id:'F',v:50,x:258,y:215,t:'del'},{id:'G',v:70,x:363,y:215,t:'del'},{id:'H',v:10,x:18,y:300}];
+  var aN=[{id:'A',v:25,x:190,y:45,t:'pro'},{id:'B',v:15,x:90,y:130},{id:'C',v:40,x:290,y:130,t:'pro'},{id:'D',v:10,x:40,y:215},{id:'E',v:30,x:238,y:215,t:'red'},{id:'F',v:60,x:343,y:215}];
+  var aE=[['A','B'],['A','C'],['B','D'],['C','E'],['C','F']];
+  return [
+    {lvl:1,prompt:'Delete <strong>50</strong> and <strong>70</strong>. What is the BF of nodes <strong>10</strong>, <strong>15</strong>, <strong>25</strong>, <strong>60</strong>, and <strong>40</strong>?',
+     bN:bN,bE:bE,W:440,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(10)=0',r:false},{t:'BF(15)=+1',r:false},{t:'BF(25)=+1',r:false},{t:'BF(60)=0',r:false},{t:'BF(40)=+2',r:true}],
+       exp:'After deleting 50 and 70, node 60 has no children.<br><br><strong>BF(10):</strong> leaf, BF=0.<br><strong>BF(15):</strong> left=10 h=0, right=empty h=&minus;1. BF=<strong>+1</strong>.<br><strong>BF(25):</strong> left subtree 15&rarr;10 h=1, right=30 h=0. BF=1&minus;0=<strong>+1</strong>.<br><strong>BF(60):</strong> no children after deletion. BF=0.<br><strong>BF(40):</strong> left subtree h=2, right=60 h=0. BF=2&minus;0=<strong>+2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(15): left path=1 edge, right empty=0, BF=+1. BF(25): left path 25&rarr;15&rarr;10=2 edges, right path=1 edge, BF=+1. BF(40): left=3 edges, right=1 edge, BF=+2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>40</strong>?',
+     bN:bNbf,bE:bE,W:440,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'LL &mdash; Single Right Rotation on node 40',r:false}],
+       exp:'BF(40)=+2 <span class="kw">and</span> BF(left child 25)=+1 &gt; 0 &rarr; <strong>LL</strong>. Apply a single right rotation on node 40.'}]},
+    {lvl:3,prompt:'LL rotation on node <strong>40</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:440,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'25 rises to become new root',r:false}],
+       exp:'Right rotation on 40: node <strong>25 is promoted</strong> to become the new root. Node 40 drops to become 25\'s right child. Node 30 (was 25\'s right child) moves to become 40\'s left child. Node 60 stays as 40\'s right child.',
+       tree:{N:aN,E:aE,W:440,H:255}}]}
+  ];
+})(),
+
+// ── T6: LR deletion ──────────────────────────────────────────────────────────
+// root=45, L=25(L=15,R=35(L=30)), R=65(L=55,R=75). Delete 55 and 75.
+// Violation at 45, BF(25)=−1 → LR
+// After LR on 45: 35 rises, 25 becomes 35.L, 45 becomes 35.R, 30 moves to 25.R
+(function(){
+  var bN=[{id:'A',v:45,x:205,y:45},{id:'B',v:25,x:100,y:130},{id:'C',v:65,x:310,y:130},{id:'D',v:15,x:48,y:215},{id:'E',v:35,x:155,y:215},{id:'F',v:55,x:258,y:215,t:'del'},{id:'G',v:75,x:363,y:215,t:'del'},{id:'H',v:30,x:125,y:300}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['C','G'],['E','H']];
+  var bNbf=[{id:'A',v:45,x:205,y:45,bf:2,t:'imb'},{id:'B',v:25,x:100,y:130,bf:-1},{id:'C',v:65,x:310,y:130},{id:'D',v:15,x:48,y:215},{id:'E',v:35,x:155,y:215,bf:1},{id:'F',v:55,x:258,y:215,t:'del'},{id:'G',v:75,x:363,y:215,t:'del'},{id:'H',v:30,x:125,y:300}];
+  var aN=[{id:'A',v:35,x:195,y:45,t:'pro'},{id:'B',v:25,x:95,y:130,t:'pro'},{id:'C',v:45,x:300,y:130,t:'pro'},{id:'D',v:15,x:45,y:215},{id:'E',v:30,x:148,y:215,t:'red'},{id:'F',v:65,x:350,y:215}];
+  var aE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F']];
+  return [
+    {lvl:1,prompt:'Delete <strong>55</strong> and <strong>75</strong>. What is the BF of nodes <strong>30</strong>, <strong>35</strong>, <strong>25</strong>, <strong>65</strong>, and <strong>45</strong>?',
+     bN:bN,bE:bE,W:440,H:335,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(30)=0',r:false},{t:'BF(35)=+1',r:false},{t:'BF(25)=&minus;1',r:false},{t:'BF(65)=0',r:false},{t:'BF(45)=+2',r:true}],
+       exp:'After deleting 55 and 75, node 65 has no children.<br><br><strong>BF(30):</strong> leaf, BF=0.<br><strong>BF(35):</strong> left=30 h=0, right=empty h=&minus;1. BF=<strong>+1</strong>.<br><strong>BF(25):</strong> left=15 h=0, right subtree 35&rarr;30 h=1. BF=0&minus;1=<strong>&minus;1</strong>.<br><strong>BF(65):</strong> no children. BF=0.<br><strong>BF(45):</strong> left subtree h=2, right=65 h=0. BF=<strong>+2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(35): left path=1 edge, right empty=0, BF=+1. BF(25): left path=1 edge, right path 25&rarr;35&rarr;30=2 edges, BF=1&minus;2=&minus;1. BF(45): left=3 edges, right=1 edge, BF=+2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>45</strong>?',
+     bN:bNbf,bE:bE,W:440,H:335,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'LR &mdash; Left-Right Double Rotation on node 45',r:false}],
+       exp:'BF(45)=+2 <span class="kw">and</span> BF(left child 25)=&minus;1 &lt; 0 &rarr; <strong>LR</strong>. Left rotation on 25 first, then right rotation on 45.'}]},
+    {lvl:3,prompt:'LR rotation on node <strong>45</strong>. Describe what the tree looks like after.',
+     bN:bNbf,bE:bE,W:440,H:335,
+     steps:[{lbl:'Result',
+       chips:[{t:'35 rises to replace 45',r:false}],
+       exp:'LR: first left-rotate on 25 (35 rises, 25 becomes 35\'s left child, 30 moves to 25\'s right child), then right-rotate on 45 (35 replaces 45, 45 becomes 35\'s right child). Node <strong>35 is promoted</strong>. 25 (with 15 left, 30 right) goes left. 45 (with 65) goes right.',
+       tree:{N:aN,E:aE,W:440,H:255}}]}
+  ];
+})(),
+
+// ── T7: LL with redistribution ───────────────────────────────────────────────
+// root=50, L=35(L=20(L=15,R=25),R=45(L=40)), R=55(R=60). Insert 10 left of 15.
+// Violation at 50, BF(35)=+1 → LL
+// After LL on 50: 35 rises, 50 becomes 35.R, 45 (was 35.R) moves to 50.L
+(function(){
+  var bN=[{id:'A',v:50,x:255,y:45},{id:'B',v:35,x:145,y:130},{id:'C',v:55,x:365,y:130},{id:'D',v:20,x:90,y:215},{id:'E',v:45,x:203,y:215},{id:'F',v:60,x:415,y:215},{id:'G',v:15,x:60,y:300},{id:'H',v:25,x:120,y:300},{id:'I',v:40,x:178,y:300},{id:'J',v:10,x:30,y:385,t:'new'}];
+  var bE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['D','G'],['D','H'],['E','I'],['G','J']];
+  var bNbf=[{id:'A',v:50,x:255,y:45,bf:2,t:'imb'},{id:'B',v:35,x:145,y:130,bf:1},{id:'C',v:55,x:365,y:130,bf:-1},{id:'D',v:20,x:90,y:215,bf:1},{id:'E',v:45,x:203,y:215,bf:1},{id:'F',v:60,x:415,y:215},{id:'G',v:15,x:60,y:300,bf:1},{id:'H',v:25,x:120,y:300},{id:'I',v:40,x:178,y:300},{id:'J',v:10,x:30,y:385,t:'new'}];
+  var aN=[{id:'A',v:35,x:240,y:45,t:'pro'},{id:'B',v:20,x:120,y:130},{id:'C',v:50,x:360,y:130,t:'pro'},{id:'D',v:15,x:60,y:215},{id:'E',v:25,x:180,y:215},{id:'F',v:45,x:298,y:215,t:'red'},{id:'G',v:55,x:415,y:215},{id:'H',v:10,x:30,y:300},{id:'I',v:40,x:258,y:300},{id:'J',v:60,x:445,y:300}];
+  var aE=[['A','B'],['A','C'],['B','D'],['B','E'],['C','F'],['C','G'],['D','H'],['F','I'],['G','J']];
+  return [
+    {lvl:1,prompt:'Insert <strong>10</strong>. What is the BF of nodes <strong>10</strong>, <strong>15</strong>, <strong>20</strong>, <strong>35</strong>, and <strong>50</strong>?',
+     bN:bN,bE:bE,W:525,H:420,
+     steps:[{lbl:'BF values',
+       chips:[{t:'BF(10)=0',r:false},{t:'BF(15)=+1',r:false},{t:'BF(20)=+1',r:false},{t:'BF(35)=+1',r:false},{t:'BF(50)=+2',r:true}],
+       exp:'<strong>BF(10):</strong> leaf, BF=0.<br><strong>BF(15):</strong> left=10 h=0, right=empty h=&minus;1. BF=<strong>+1</strong>.<br><strong>BF(20):</strong> left subtree 15&rarr;10 h=1, right=25 h=0. BF=<strong>+1</strong>.<br><strong>BF(35):</strong> left subtree rooted at 20 h=2, right subtree 45&rarr;40 h=1. BF=2&minus;1=<strong>+1</strong>.<br><strong>BF(50):</strong> left subtree rooted at 35 h=3, right subtree 55&rarr;60 h=1. BF=3&minus;1... wait: h(35 after)=3? h(20)=2, h(45)=1, h(35)=max(2,1)+1=3. h(55)=1. BF(50)=3&minus;1... Hmm. Let me recount: h(35)=max(h(20),h(45))+1=max(2,1)+1=3. h(55)=max(h(empty),h(60))+1=max(&minus;1,0)+1=1. BF(50)=3&minus;1=<strong>+2</strong>. Violation!',
+       alt:'Counting edges &mdash; BF(15): 1 edge left, 0 right, BF=+1. BF(20): left path=2 edges, right=1 edge, BF=+1. BF(35): left longest path 35&rarr;20&rarr;15&rarr;10=3 edges, right path 35&rarr;45&rarr;40=2 edges, BF=+1. BF(50): left=4 edges, right=2 edges, BF=+2.'}]},
+    {lvl:2,prompt:'BFs are shown. What rotation applies on node <strong>50</strong>?',
+     bN:bNbf,bE:bE,W:525,H:420,
+     steps:[{lbl:'Rotation case',
+       chips:[{t:'LL &mdash; Single Right Rotation on node 50',r:false}],
+       exp:'BF(50)=+2 <span class="kw">and</span> BF(left child 35)=+1 &gt; 0 &rarr; <strong>LL</strong>. Apply a single right rotation on node 50.'}]},
+    {lvl:3,prompt:'LL rotation on node <strong>50</strong>. Describe what the tree looks like after. Pay attention to node <strong>45</strong>.',
+     bN:bNbf,bE:bE,W:525,H:420,
+     steps:[{lbl:'Result',
+       chips:[{t:'35 rises to replace 50',r:false},{t:'45 moves to become 50\'s left child',r:false,purple:true}],
+       exp:'Right rotation on 50: node <strong>35 is promoted</strong> to become the new root. Node 50 drops to become 35\'s right child.<br><br><strong>Redistribution:</strong> node 45 was 35\'s right child. It must vacate that spot because 50 now occupies it. Node <strong>45 moves to become 50\'s left child</strong>. Node 55&rarr;60 stays as 50\'s right subtree.',
+       tree:{N:aN,E:aE,W:525,H:335}}]}
+  ];
+})()
+
+];
+
+// Flatten: levels 1,2,3 each have 7 tiles (one per tree)
+// tile 1-7 = L1 for trees 0-6, tile 8-14 = L2, tile 15-21 = L3
+// Shuffle within each level
+var ORDER=[0,1,2,3,4,5,6];
+(function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}})(ORDER);
+var ORDER2=[0,1,2,3,4,5,6];
+(function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}})(ORDER2);
+var ORDER3=[0,1,2,3,4,5,6];
+(function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}})(ORDER3);
+
+var done=new Set(),active=null;
+
+function getQ(tileNum){
+  if(tileNum<=7) return TREES[ORDER[tileNum-1]][0];
+  if(tileNum<=14) return TREES[ORDER2[tileNum-8]][1];
+  return TREES[ORDER3[tileNum-15]][2];
+}
+
+function buildGrid(){
+  ['row1','row2','row3'].forEach(function(rowId,lvl){
+    var row=document.getElementById(rowId);row.innerHTML='';
+    for(var i=1;i<=7;i++){
+      var num=lvl*7+i;
+      var el=document.createElement('div');
+      var isDone=done.has(num),isActive=active===num;
+      el.className='tile'+(isDone?' done':'')+(isActive?' active-tile':'');
+      el.innerHTML='<div class="tile-num">'+num+'</div>'+(isDone?'<div class="tile-check">&#10003;</div>':'');
+      el.onclick=(function(n){return function(){openTile(n);};})(num);
+      row.appendChild(el);
+    }
+  });
+  document.getElementById('sDone').textContent=done.size;
+  document.getElementById('sLeft').textContent=21-done.size;
+  document.getElementById('pFill').style.width=(done.size/21*100).toFixed(1)+'%';
+}
+
+function openTile(num){
+  active=num;buildGrid();
+  var q=getQ(num);
+  var isDone=done.has(num);
+  var lvlCls=q.lvl===1?'lv1':q.lvl===2?'lv2':'lv3';
+  var lvlLbl=q.lvl===1?'Level 1 &mdash; BF':q.lvl===2?'Level 2 &mdash; Rotation':'Level 3 &mdash; Result';
+  var stepsH='<div class="steps">';
+  q.steps.forEach(function(s,i){
+    var chipsH=s.chips.map(function(c){return '<div class="chip'+(c.r?' red':c.purple?' purple':'')+'">'+c.t+'</div>';}).join('');
+    var altH=s.alt?'<div class="alt-box"><div class="alt-label">&#128161; Alternative (counting edges)</div><div class="alt-exp">'+s.alt+'</div></div>':'';
+    var treeH=s.tree?'<div><div class="tree-lbl">Tree after rotation</div><div class="tree-box after">'+dT(s.tree.N,s.tree.E,s.tree.W,s.tree.H)+'</div></div>':'';
+    stepsH+='<div class="step-wrap" id="sw'+num+'_'+i+'"><button class="step-btn" onclick="toggleStep('+num+','+i+')"><span>'+s.lbl+'</span><span class="step-chev">&#9660;</span></button><div class="step-body"><div class="chips">'+chipsH+'</div><div class="answer-exp">'+s.exp+'</div>'+altH+treeH+'</div></div>';
+  });
+  stepsH+='</div>';
+  document.getElementById('rightPanel').innerHTML=
+    '<div class="panel-question">'+
+    '<div class="q-header"><div class="q-badges"><div class="q-num">#'+num+'</div><div class="q-level '+lvlCls+'">'+lvlLbl+'</div>'+(isDone?'<div class="done-badge">&#10003; Done</div>':'')+
+    '</div><button class="btn-x" onclick="closeTile()">&#10005; Close</button></div>'+
+    '<div class="q-body">'+
+    '<div class="q-prompt">'+q.prompt+'</div>'+
+    '<div><div class="tree-lbl">Tree</div><div class="tree-box">'+dT(q.bN,q.bE,q.W,q.H)+'</div></div>'+
+    stepsH+
+    '</div>'+
+    '<div class="q-footer">'+(isDone?'<button class="btn-undone" onclick="unmarkDone('+num+')">&#8617; Mark as not done</button>':'<button class="btn-done" onclick="markDone('+num+')">&#10003; Mark as done</button>')+
+    '<button class="btn-x" onclick="closeTile()">Back</button></div></div>';
+}
+
+function toggleStep(num,i){var el=document.getElementById('sw'+num+'_'+i);if(el)el.classList.toggle('open');}
+function closeTile(){
+  active=null;buildGrid();
+  document.getElementById('rightPanel').innerHTML='<div class="panel-idle"><div class="idle-icon">&#127795;</div><div class="idle-title">Waiting for a student</div><div class="idle-sub">Students pick a number from each level. Click the tile to reveal their question.</div><div class="idle-hint">BF = left height &minus; right height</div></div>';
+}
+function markDone(n){done.add(n);closeTile();}
+function unmarkDone(n){done.delete(n);openTile(n);}
+buildGrid();
+</script>
+</body>
+</html>
